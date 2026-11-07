@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>キャラクターWebAR</title>
+
+  <!-- A-Frame と MindAR の読み込み -->
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    /* 画面全体の基本設定 */
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: "Helvetica Neue", Arial, sans-serif;
+    }
+
+    /* マンガのコマ割り風の全体枠 */
+    #comic-frame {
+      position: fixed;
+      bottom: 25px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 85%;
+      max-width: 340px;
+      background: #ffffff;
+      border: 4px solid #111111; /* マンガの太い枠線 */
+      border-radius: 8px;
+      box-shadow: 6px 6px 0px #111111; /* 影もマンガ風のベタ黒 */
+      padding: 16px;
+      box-sizing: border-box;
+      z-index: 1000;
+      display: none; /* 最初は非表示 */
+      animation: popIn 0.25s ease-out;
+    }
+
+    /* ポップに出現するアニメーション */
+    @keyframes popIn {
+      0% { transform: translateX(-50%) scale(0.7); opacity: 0; }
+      100% { transform: translateX(-50%) scale(1); opacity: 1; }
+    }
+
+    /* コマの上の見出し（タイトルタグ風） */
+    .comic-tag {
+      display: inline-block;
+      background: #111111;
+      color: #ffffff;
+      font-size: 11px;
+      font-weight: bold;
+      padding: 2px 8px;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    /* 吹き出しの見た目 */
+    .speech-bubble {
+      position: relative;
+      background: #fdfdfd;
+      border: 2px solid #333333;
+      border-radius: 12px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+    }
+
+    /* 吹き出しのしっぽ（三角） */
+    .speech-bubble::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 30px;
+      border-width: 10px 8px 0;
+      border-style: solid;
+      border-color: #333333 transparent;
+      display: block;
+      width: 0;
+    }
+
+    /* セリフの文字 */
+    #dialogue-text {
+      font-size: 15px;
+      font-weight: bold;
+      color: #222222;
+      line-height: 1.5;
+      margin: 0;
+    }
+
+    /* Webサイトへ飛ぶボタン */
+    .link-button {
+      display: block;
+      width: 100%;
+      background: #ff4757; /* 鮮やかな赤・ピンク系 */
+      color: #ffffff;
+      text-decoration: none;
+      text-align: center;
+      padding: 12px 0;
+      font-size: 14px;
+      font-weight: bold;
+      border: 2px solid #111111;
+      border-radius: 6px;
+      box-shadow: 3px 3px 0px #111111;
+      box-sizing: border-box;
+      transition: transform 0.1s;
+    }
+
+    .link-button:active {
+      transform: translate(2px, 2px);
+      box-shadow: 1px 1px 0px #111111;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ARカメラシーンの設定（targets.mind を読み込み） -->
+  <a-scene 
+    mindar-image="imageTargetSrc: ./targets.mind; filterMinCF: 0.001; filterBeta: 1000;" 
+    color-space="sRGB" 
+    renderer="colorManagement: true, physicallyCorrectLights" 
+    vr-mode-ui="enabled: false" 
+    device-orientation-permission-ui="enabled: false">
+    
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- イラストを認識するターゲット -->
+    <a-entity id="ar-target" mindar-image-target="targetIndex: 0">
+      <!-- ※将来的にイラストの上に3Dモデルや画像を重ねたい場合はここに記述します -->
+    </a-entity>
+  </a-scene>
+
+  <!-- マンガ風コマ枠（認識したときに飛び出るUI） -->
+  <div id="comic-frame">
+    <div class="comic-tag">◆ 遭遇！ ◆</div>
+
+    <!-- 吹き出し -->
+    <div class="speech-bubble">
+      <p id="dialogue-text">……</p>
+    </div>
+
+    <!-- ★ 飛びたいリンク先URLを href="" の中に書いてください -->
+    <a href="https://example.com" target="_blank" rel="noopener noreferrer" class="link-button">
+      公式サイトを開く！ ＞＞
+    </a>
+  </div>
+
+  <script>
+    const target = document.querySelector('#ar-target');
+    const comicFrame = document.querySelector('#comic-frame');
+    const dialogueText = document.querySelector('#dialogue-text');
+
+    // ★ ランダムで表示したい挨拶のセリフ（3種類）
+    const greetings = [
+      "見つけてくれてありがとう！✨\n今日もいい日になりますように！",
+      "やっほー！会いに来てくれて嬉しいな！☕️\nちょっとひと息ついていかない？",
+      "今日も一日お疲れさま〜！🌟\nいつもそばに置いてくれて感謝だよ！"
+    ];
+
+    // イラストをカメラが認識した瞬間
+    target.addEventListener("targetFound", () => {
+      // 3種類の挨拶からランダムに1つ選ぶ
+      const randomIndex = Math.floor(Math.random() * greetings.length);
+      dialogueText.textContent = greetings[randomIndex];
+
+      // コマ枠を表示
+      comicFrame.style.display = 'block';
+    });
+
+    // イラストがカメラの枠から外れた時
+    target.addEventListener("targetLost", () => {
+      comicFrame.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
