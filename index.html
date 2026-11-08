@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>小さな森の WebAR</title>
+  <title>ちいさな森 WebAR</title>
 
-  <!-- A-Frame と MindAR の読み込み -->
+  <!-- A-Frame & MindAR -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
@@ -13,68 +13,83 @@
     body {
       margin: 0;
       overflow: hidden;
-      font-family: 'Hiragino Maru Gothic ProN', sans-serif;
+      font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', 'Meiryo', sans-serif;
     }
 
-    /* 画面下部の案内バー */
+    /* 画面下部のUIコンテナ */
     #ui-container {
       position: fixed;
-      bottom: 20px;
+      bottom: 24px;
       left: 50%;
       transform: translateX(-50%);
       z-index: 1000;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       pointer-events: none;
       width: 90%;
-      max-width: 400px;
+      max-width: 420px;
     }
 
-    /* メッセージ下部表示 */
+    /* メッセージ吹き出し（ふわっと切り替わる） */
     #msg-box {
-      background: rgba(255, 255, 255, 0.95);
+      background: rgba(255, 255, 255, 0.96);
       border: 3px solid #ff7b90;
-      color: #4a2c11;
-      padding: 10px 16px;
-      border-radius: 16px;
-      font-size: 14px;
+      color: #4a2810;
+      padding: 12px 20px;
+      border-radius: 20px;
+      font-size: 15px;
+      line-height: 1.45;
       font-weight: bold;
       text-align: center;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
       width: 100%;
       box-sizing: border-box;
       white-space: pre-wrap;
-      transition: all 0.3s ease;
+      opacity: 1;
+      transform: scale(1);
+      transition: opacity 0.5s ease, transform 0.5s ease;
     }
 
-    /* ショップへ行くボタン */
+    /* メッセージ切り替え時のフェードアニメ */
+    #msg-box.msg-hidden {
+      opacity: 0;
+      transform: scale(0.92);
+    }
+
+    /* ショップへ飛ぶボタン */
     #shop-btn {
       pointer-events: auto;
-      background: #f65353;
+      background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
       color: #ffffff;
       text-decoration: none;
       font-size: 14px;
       font-weight: bold;
-      padding: 10px 24px;
-      border-radius: 25px;
-      box-shadow: 0 4px 10px rgba(246, 83, 83, 0.4);
+      padding: 12px 28px;
+      border-radius: 30px;
+      box-shadow: 0 4px 12px rgba(238, 82, 83, 0.4);
       display: inline-block;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    #shop-btn:active {
+      transform: scale(0.96);
+      box-shadow: 0 2px 6px rgba(238, 82, 83, 0.3);
     }
   </style>
 </head>
 <body>
 
-  <!-- 下部メッセージ＆ショップリンクUI -->
+  <!-- 下部案内 ＆ メッセージUI -->
   <div id="ui-container">
     <div id="msg-box">マーカーにカメラをかざしてね！🍄</div>
     <a id="shop-btn" href="https://chiisanamori.shop" target="_blank" rel="noopener noreferrer">
-      小さな森の研究所へ行く ➔
+      ちいさな森ショップへ行く ➔
     </a>
   </div>
 
-  <!-- AR シーン（targets.mind を読み込み） -->
+  <!-- AR シーン -->
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes;" 
     color-space="sRGB" 
@@ -82,144 +97,198 @@
     vr-mode-ui="enabled: false" 
     device-orientation-permission-ui="enabled: false">
     
-    <!-- アセット管理 -->
     <a-assets>
       <img id="tex-front" src="chara_front.png">
       <img id="tex-back" src="chara_back.png">
     </a-assets>
 
-    <!-- ARカメラ（クリック可能にするレイトレーサー付き） -->
+    <!-- タップ判定用カメラ -->
     <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
 
-    <!-- マーカー認識対象（targetIndex: 0） -->
+    <!-- マーカーターゲット -->
     <a-entity id="target-anchor" mindar-image-target="targetIndex: 0">
       
-      <!-- キャラクター親エンティティ（マーカー上を動く） -->
+      <!-- キャラクタールート -->
       <a-entity id="chara-root" position="0 0 0.05">
-        
-        <!-- 正面画像プレーン -->
-        <a-plane id="plane-front" class="clickable" src="#tex-front" width="0.75" height="0.75" transparent="true" alpha-test="0.5" position="0 0 0" visible="true"></a-plane>
-        
-        <!-- 後ろ姿画像プレーン -->
-        <a-plane id="plane-back" class="clickable" src="#tex-back" width="0.75" height="0.75" transparent="true" alpha-test="0.5" position="0 0 0" visible="false"></a-plane>
-
+        <!-- 正面 -->
+        <a-plane id="plane-front" class="clickable" src="#tex-front" transparent="true" alpha-test="0.5" position="0 0 0" visible="true"></a-plane>
+        <!-- 後ろ姿 -->
+        <a-plane id="plane-back" class="clickable" src="#tex-back" transparent="true" alpha-test="0.5" position="0 0 0" visible="false"></a-plane>
       </a-entity>
 
     </a-entity>
   </a-scene>
 
   <script>
+    /* ========================================================
+       【サイズや範囲の簡単調整設定】
+       ここでお好みの大きさに調整できます
+    ======================================================== */
+    const CONFIG = {
+      charaSize: 0.42,       // キャラクターの大きさ（前回の0.75から0.42へ小さく調整）
+      areaRangeX: 1.5,       // 横方向に動き回る広さ（マーカー中心からの幅）
+      areaRangeY: 1.3,       // 縦方向に動き回る広さ（マーカー中心からの奥行き）
+      msgDurationMin: 6000,  // メッセージの最短表示時間（6秒）
+      msgDurationMax: 8500,  // メッセージの最長表示時間（8.5秒）
+      walkSpeed: 0.28,       // 歩きスピード
+      runSpeed: 0.65         // 走りスピード
+    };
+
+    // DOM要素の取得
     const anchor = document.getElementById('target-anchor');
     const charaRoot = document.getElementById('chara-root');
     const planeFront = document.getElementById('plane-front');
     const planeBack = document.getElementById('plane-back');
     const msgBox = document.getElementById('msg-box');
 
-    // セリフパターン
+    // キャラの初期サイズ適用
+    planeFront.setAttribute('width', CONFIG.charaSize);
+    planeFront.setAttribute('height', CONFIG.charaSize);
+    planeBack.setAttribute('width', CONFIG.charaSize);
+    planeBack.setAttribute('height', CONFIG.charaSize);
+
+    // セリフ一覧
     const messages = {
       walk: [
         "てくてく、お散歩日和〜♪",
         "わあ、今日の太陽さんは\nとってもあったかいね！",
+        "いい匂いのお花、みっけ！",
         "らんらら〜ん♪"
       ],
       run: [
         "わーい！急げ急げ〜！",
         "走るの大すき！ついてきてね！",
-        "風がとってもきもちいい！"
+        "風がとってもきもちいい〜！"
       ],
       jump: [
         "見つけてくれてありがとう！\nぴょんぴょん跳ねちゃう！",
         "わーい！大発見だよ！",
-        "ちいさな森へ遊びにおいでよ！"
+        "ちいさな森へようこそ〜！"
       ],
       idle: [
         "ちょっとひとやすみ…",
         "ちいさな森、見に行ってみる？\n下のボタンを押してね！",
-        "次はどこへ探検にいこうかな？"
+        "森の中には何があるのかな？",
+        "ふふっ、いいお天気だね！"
       ]
     };
 
     let isTargetFound = false;
-    let posX = 0;
-    let posY = 0;
-    let targetX = 0;
-    let targetY = 0;
+    let currentX = 0, currentY = 0;
+    let targetX = 0, targetY = 0;
     let currentState = 'idle';
-    let jumpTime = 0;
+    let facingX = 1;
+    let isMovingBackwards = false;
+    let animTimer = 0;
+    let lastTime = performance.now();
 
-    // マーカーを見つけた時
+    // マーカー認識イベント
     anchor.addEventListener("targetFound", () => {
       isTargetFound = true;
-      msgBox.innerText = "あっ、見つけてくれた！\nこんにちは〜！🍄";
+      updateMessage("あっ、見つけてくれた！\nこんにちは〜！🍄");
     });
 
-    // マーカーを見失った時
     anchor.addEventListener("targetLost", () => {
       isTargetFound = false;
-      msgBox.innerText = "マーカーを探しているよ…\nカメラをかざしてね！";
+      updateMessage("マーカーを探しているよ…\nカメラをかざしてね！");
     });
 
-    // キャラクター自体をタップした時もショップへジャンプ
-    [planeFront, planeBack].forEach(plane => {
-      plane.addEventListener('click', () => {
+    // キャラクタータップ時もショップへ
+    [planeFront, planeBack].forEach(el => {
+      el.addEventListener('click', () => {
         window.open('https://chiisanamori.shop', '_blank');
       });
     });
 
-    // 行動パターンをランダムに切り替え
-    function changeBehavior() {
+    // メッセージのフェード切り替え処理
+    function updateMessage(text) {
+      msgBox.classList.add('msg-hidden');
+      setTimeout(() => {
+        msgBox.innerText = text;
+        msgBox.classList.remove('msg-hidden');
+      }, 500);
+    }
+
+    // 行動パターンと目的地の切り替え（ゆっくり間隔）
+    function scheduleNextState() {
       if (!isTargetFound) {
-        setTimeout(changeBehavior, 1000);
+        setTimeout(scheduleNextState, 1000);
         return;
       }
 
       const states = ['walk', 'run', 'jump', 'idle'];
       currentState = states[Math.floor(Math.random() * states.length)];
 
-      // マーカーの枠内（-0.35 〜 +0.35 程度）を安全に動く
-      targetX = (Math.random() - 0.5) * 0.7;
-      targetY = (Math.random() - 0.5) * 0.7;
+      // 広くなった範囲から次の目的地を決定
+      targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+      targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
 
       // セリフ更新
       const list = messages[currentState];
-      msgBox.innerText = list[Math.floor(Math.random() * list.length)];
+      updateMessage(list[Math.floor(Math.random() * list.length)]);
 
-      const nextTime = 2500 + Math.random() * 2500;
-      setTimeout(changeBehavior, nextTime);
+      // 6秒〜8.5秒間じっくり表示
+      const nextDelay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
+      setTimeout(scheduleNextState, nextDelay);
     }
 
-    // 移動とアニメーションの毎フレーム処理
-    function renderLoop() {
+    // メインアニメーションループ（滑らかな物理挙動）
+    function loop(now) {
+      const dt = Math.min((now - lastTime) / 1000, 0.1); // デルタタイム（秒）
+      lastTime = now;
+
       if (isTargetFound) {
-        let isMovingUp = false;
-        let facingX = 1;
+        let speed = 0;
+        if (currentState === 'walk') speed = CONFIG.walkSpeed;
+        if (currentState === 'run')  speed = CONFIG.runSpeed;
 
-        if (currentState === 'walk' || currentState === 'run') {
-          const speed = currentState === 'run' ? 0.012 : 0.005;
-          const dx = targetX - posX;
-          const dy = targetY - posY;
-          const dist = Math.sqrt(dx * dx + dy * dy);
+        const dx = targetX - currentX;
+        const dy = targetY - currentY;
+        const dist = Math.sqrt(dx * dx + dy * dy);
 
-          if (dist > 0.02) {
-            posX += (dx / dist) * speed;
-            posY += (dy / dist) * speed;
+        // 目的地の近くまでスムーズに移動
+        if (dist > 0.03 && speed > 0) {
+          const moveStep = Math.min(speed * dt, dist);
+          currentX += (dx / dist) * moveStep;
+          currentY += (dy / dist) * moveStep;
+
+          // 進行方向の左右反転
+          if (Math.abs(dx) > 0.01) {
             facingX = dx > 0 ? 1 : -1;
-            isMovingUp = dy > 0.002; // 上（奥）に進む時は後ろ姿
           }
+
+          // 正面／後ろ姿の安定判定（チラつき防止のヒステリシス）
+          if (dy > 0.05) isMovingBackwards = true;   // 上（奥）へ進んでいる時は後ろ姿
+          if (dy < -0.05) isMovingBackwards = false; // 下（手前）へ進んでいる時は正面
+        } else if (currentState !== 'walk' && currentState !== 'run') {
+          // 停止中・ジャンプ中は正面を向く
+          isMovingBackwards = false;
         }
 
-        // ジャンプ動作
-        let posZ = 0.05;
+        // キャラクターの上下・足踏み・ジャンプアニメーション
+        animTimer += dt;
+        let bounceZ = 0.05;
+        let tiltRot = 0;
+
         if (currentState === 'jump') {
-          jumpTime += 0.15;
-          posZ = 0.05 + Math.abs(Math.sin(jumpTime)) * 0.18;
+          // 元気なジャンプ（高く・リズミカルに）
+          bounceZ += Math.abs(Math.sin(animTimer * 6)) * 0.16;
+          tiltRot = Math.sin(animTimer * 6) * 4;
         } else if (currentState === 'run') {
-          jumpTime += 0.25;
-          posZ = 0.05 + Math.abs(Math.sin(jumpTime)) * 0.06;
+          // パタパタダッシュ（小刻みな跳ねと傾き）
+          bounceZ += Math.abs(Math.sin(animTimer * 14)) * 0.05;
+          tiltRot = Math.sin(animTimer * 14) * 7;
+        } else if (currentState === 'walk') {
+          // てくてく歩き（ゆったり上下＆左右の揺れ）
+          bounceZ += Math.abs(Math.sin(animTimer * 7)) * 0.025;
+          tiltRot = Math.sin(animTimer * 7) * 4;
+        } else {
+          // ひと休み（呼吸のようにふわふわ）
+          bounceZ += Math.sin(animTimer * 2.5) * 0.01;
         }
 
-        // 正面／後ろ姿の表示切り替え
-        if (isMovingUp && (currentState === 'walk' || currentState === 'run')) {
+        // 前後スプライトの表示切り替え
+        if (isMovingBackwards) {
           planeFront.setAttribute('visible', 'false');
           planeBack.setAttribute('visible', 'true');
         } else {
@@ -227,19 +296,21 @@
           planeBack.setAttribute('visible', 'false');
         }
 
-        // 反転（進行方向）
+        // 向き（左右反転）
         planeFront.setAttribute('scale', `${facingX} 1 1`);
         planeBack.setAttribute('scale', `${facingX} 1 1`);
 
-        // 座標更新
-        charaRoot.setAttribute('position', `${posX} ${posY} ${posZ}`);
+        // 滑らかな回転と位置反映
+        charaRoot.setAttribute('rotation', `0 0 ${tiltRot}`);
+        charaRoot.setAttribute('position', `${currentX} ${currentY} ${bounceZ}`);
       }
 
-      requestAnimationFrame(renderLoop);
+      requestAnimationFrame(loop);
     }
 
-    changeBehavior();
-    renderLoop();
+    // 開始
+    scheduleNextState();
+    requestAnimationFrame(loop);
   </script>
 </body>
 </html>
