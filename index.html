@@ -3,20 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>小さな森の WebAR</title>
+  <title>小さな森の研究所 - 生態観測レンズ</title>
 
   <!-- A-Frame & MindAR -->
   <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    body {
+    * {
+      box-sizing: border-box;
       margin: 0;
-      overflow: hidden;
-      font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', 'Meiryo', sans-serif;
+      padding: 0;
     }
 
-    /* 画面下部のUIコンテナ */
+    body {
+      overflow: hidden;
+      font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', 'Meiryo', sans-serif;
+      user-select: none;
+    }
+
+    /* === 研究所の観測スコープ風フレーム === */
+    .scope-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 500;
+    }
+
+    /* 四隅のフォーカス枠 */
+    .corner {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border: 3px solid rgba(255, 255, 255, 0.7);
+    }
+    .top-left     { top: 20px; left: 20px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
+    .top-right    { top: 20px; right: 20px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
+    .bottom-left  { bottom: 20px; left: 20px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
+    .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
+
+    /* 上部の研究所ステータス表示 */
+    .lab-header {
+      position: fixed;
+      top: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(35, 50, 30, 0.75);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(180, 220, 160, 0.4);
+      color: #e8f5e9;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      letter-spacing: 1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      z-index: 600;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #ffcc00;
+      box-shadow: 0 0 8px #ffcc00;
+      animation: pulse 1.5s infinite;
+    }
+    .status-dot.active {
+      background: #55efc4;
+      box-shadow: 0 0 8px #55efc4;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 0.5; }
+      50% { opacity: 1; }
+    }
+
+    /* === 下部：メッセージ＆生態ログ＆ショップリンク === */
     #ui-container {
       position: fixed;
       bottom: 24px;
@@ -26,70 +93,102 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 12px;
-      pointer-events: none;
+      gap: 10px;
       width: 90%;
       max-width: 420px;
+      pointer-events: none;
     }
 
-    /* メッセージ吹き出し（ふわっと切り替わる） */
-    #msg-box {
+    /* 会話＆観察ログパネル */
+    #dialog-panel {
       background: rgba(255, 255, 255, 0.96);
       border: 3px solid #ff7b90;
-      color: #4a2810;
-      padding: 12px 20px;
+      padding: 12px 18px;
       border-radius: 20px;
-      font-size: 15px;
-      line-height: 1.45;
-      font-weight: bold;
-      text-align: center;
-      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.18);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
       width: 100%;
-      box-sizing: border-box;
-      white-space: pre-wrap;
+      text-align: center;
       opacity: 1;
       transform: scale(1);
-      transition: opacity 0.5s ease, transform 0.5s ease;
+      transition: opacity 0.4s ease, transform 0.4s ease;
     }
 
-    /* メッセージ切り替え時のフェードアニメ */
-    #msg-box.msg-hidden {
+    #dialog-panel.panel-hidden {
       opacity: 0;
-      transform: scale(0.92);
+      transform: scale(0.94);
     }
 
-    /* ショップへ飛ぶボタン */
+    /* セリフ */
+    #speech-text {
+      color: #3e2714;
+      font-size: 15px;
+      font-weight: bold;
+      line-height: 1.45;
+      white-space: pre-wrap;
+    }
+
+    /* 研究所の生態ログ */
+    #observation-log {
+      margin-top: 6px;
+      font-size: 11px;
+      color: #7b8a70;
+      border-top: 1px dashed #e0d0c0;
+      padding-top: 5px;
+      letter-spacing: 0.5px;
+    }
+
+    /* 研究所ショップへのアクセスボタン */
     #shop-btn {
       pointer-events: auto;
-      background: linear-gradient(135deg, #ff6b6b 0%, #ee5253 100%);
+      background: linear-gradient(135deg, #48bb78 0%, #2f855a 100%);
       color: #ffffff;
       text-decoration: none;
-      font-size: 14px;
+      font-size: 13.5px;
       font-weight: bold;
-      padding: 12px 28px;
-      border-radius: 30px;
-      box-shadow: 0 4px 12px rgba(238, 82, 83, 0.4);
-      display: inline-block;
-      transition: transform 0.15s ease, box-shadow 0.15s ease;
+      padding: 10px 24px;
+      border-radius: 25px;
+      box-shadow: 0 4px 14px rgba(47, 133, 90, 0.35);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: transform 0.15s ease, background 0.2s ease;
     }
 
     #shop-btn:active {
       transform: scale(0.96);
-      box-shadow: 0 2px 6px rgba(238, 82, 83, 0.3);
     }
   </style>
 </head>
 <body>
 
-  <!-- 下部案内 ＆ メッセージUI -->
+  <!-- レンズスコープ演出 -->
+  <div class="scope-overlay">
+    <div class="corner top-left"></div>
+    <div class="corner top-right"></div>
+    <div class="corner bottom-left"></div>
+    <div class="corner bottom-right"></div>
+  </div>
+
+  <!-- 研究所ステータス -->
+  <div class="lab-header">
+    <div id="statusDot" class="status-dot"></div>
+    <span id="statusText">小さな森の研究所：スキャン中</span>
+  </div>
+
+  <!-- 下部会話＆観察パネル -->
   <div id="ui-container">
-    <div id="msg-box">マーカーにカメラをかざしてね！🍄</div>
+    <div id="dialog-panel">
+      <div id="speech-text">ちいさな森のともだちを探してね…🌱</div>
+      <div id="observation-log">【観測待機】グッズやカードにレンズをかざしてください</div>
+    </div>
+
+    <!-- サイト連動リンク -->
     <a id="shop-btn" href="https://chiisanamori.shop" target="_blank" rel="noopener noreferrer">
-      小さな森の研究所へ行く ➔
+      🌿 小さな森の研究所へ行く ➔
     </a>
   </div>
 
-  <!-- AR シーン -->
+  <!-- AR シーン（targets.mind を読み込み） -->
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes;" 
     color-space="sRGB" 
@@ -102,7 +201,6 @@
       <img id="tex-back" src="chara_back.png">
     </a-assets>
 
-    <!-- タップ判定用カメラ -->
     <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
 
     <!-- マーカーターゲット -->
@@ -121,174 +219,186 @@
 
   <script>
     /* ========================================================
-       【サイズや範囲の簡単調整設定】
-       ここでお好みの大きさに調整できます
+       【基本設定】
     ======================================================== */
     const CONFIG = {
-      charaSize: 0.42,       // キャラクターの大きさ（前回の0.75から0.42へ小さく調整）
-      areaRangeX: 1.5,       // 横方向に動き回る広さ（マーカー中心からの幅）
-      areaRangeY: 1.3,       // 縦方向に動き回る広さ（マーカー中心からの奥行き）
-      msgDurationMin: 6000,  // メッセージの最短表示時間（6秒）
-      msgDurationMax: 8500,  // メッセージの最長表示時間（8.5秒）
-      walkSpeed: 0.28,       // 歩きスピード
-      runSpeed: 0.65         // 走りスピード
+      charaSize: 0.40,       // キャラクターのサイズ（観察しやすく小さめに設定）
+      areaRangeX: 1.6,       // 横方向に歩き回る広さ
+      areaRangeY: 1.4,       // 縦方向に歩き回る広さ
+      msgDurationMin: 6500,  // セリフ表示の最短時間（6.5秒）
+      msgDurationMax: 8500   // セリフ表示の最長時間（8.5秒）
     };
 
-    // DOM要素の取得
+    /* ========================================================
+       【生態シナリオ集】
+       セリフ × 画像ポーズ × 動き を完全にセットで定義しています
+    ======================================================== */
+    const SCENARIOS = [
+      {
+        // ① 奥へ探検（後ろ姿で奥へ走る）
+        type: 'explore_back',
+        pose: 'back',
+        speed: 0.55,
+        speech: "あっちに何かあるのかな？\nいってみよう〜！",
+        log: "【探索行動】奥の茂みへ興味を示して駆け出しました"
+      },
+      {
+        // ② こちらに駆け寄る（正面で手前にダッシュ）
+        type: 'run_towards',
+        pose: 'front',
+        speed: 0.65,
+        speech: "わあ！見つけてくれてありがとう！\nいっしょに遊ぼう！",
+        log: "【親愛行動】観測者に気づき、嬉しそうに駆け寄ってきました"
+      },
+      {
+        // ③ てくてくお散歩（正面で横へ歩く）
+        type: 'walk_around',
+        pose: 'front',
+        speed: 0.28,
+        speech: "わあ、今日の太陽さんは\nとってもあったかいね！☀️",
+        log: "【日常生態】あたたかい光を浴びながらお散歩しています"
+      },
+      {
+        // ④ 嬉しくてジャンプ（その場でぴょんぴょん跳ねる）
+        type: 'jump_joy',
+        pose: 'front',
+        speed: 0,
+        speech: "らんらら〜ん♪\n今日もいいことありそう！✨",
+        log: "【歓喜行動】ご機嫌な様子でリズミカルに飛び跳ねています"
+      },
+      {
+        // ⑤ 足をとめて観察（その場で立ち止まる）
+        type: 'idle_observe',
+        pose: 'front',
+        speed: 0,
+        speech: "ここはちいさな森だよ。\nふふっ、じっと見つめ合っちゃった！",
+        log: "【観察行動】足を止め、こちらの様子を観察しています"
+      }
+    ];
+
+    // DOM要素
     const anchor = document.getElementById('target-anchor');
     const charaRoot = document.getElementById('chara-root');
     const planeFront = document.getElementById('plane-front');
     const planeBack = document.getElementById('plane-back');
-    const msgBox = document.getElementById('msg-box');
+    const dialogPanel = document.getElementById('dialog-panel');
+    const speechText = document.getElementById('speech-text');
+    const observationLog = document.getElementById('observation-log');
+    const statusDot = document.getElementById('statusDot');
+    const statusText = document.getElementById('statusText');
 
-    // キャラの初期サイズ適用
-    planeFront.setAttribute('width', CONFIG.charaSize);
-    planeFront.setAttribute('height', CONFIG.charaSize);
-    planeBack.setAttribute('width', CONFIG.charaSize);
-    planeBack.setAttribute('height', CONFIG.charaSize);
-
-    // セリフ一覧
-    const messages = {
-      walk: [
-        "てくてく、お散歩日和〜♪",
-        "わあ、今日の太陽さんは\nとってもあったかいね！",
-        "いい匂いのお花、みっけ！",
-        "らんらら〜ん♪"
-      ],
-      run: [
-        "わーい！急げ急げ〜！",
-        "走るの大すき！ついてきてね！",
-        "風がとってもきもちいい〜！"
-      ],
-      jump: [
-        "見つけてくれてありがとう！\nぴょんぴょん跳ねちゃう！",
-        "わーい！大発見だよ！",
-        "ちいさな森へようこそ〜！"
-      ],
-      idle: [
-        "ちょっとひとやすみ…",
-        "ちいさな森、見に行ってみる？\n下のボタンを押してね！",
-        "森の中には何があるのかな？",
-        "ふふっ、いいお天気だね！"
-      ]
-    };
-
-    let isTargetFound = false;
-    let currentX = 0, currentY = 0;
-    let targetX = 0, targetY = 0;
-    let currentState = 'idle';
-    let facingX = 1;
-    let isMovingBackwards = false;
-    let animTimer = 0;
-    let lastTime = performance.now();
-
-    // マーカー認識イベント
-    anchor.addEventListener("targetFound", () => {
-      isTargetFound = true;
-      updateMessage("あっ、見つけてくれた！\nこんにちは〜！🍄");
-    });
-
-    anchor.addEventListener("targetLost", () => {
-      isTargetFound = false;
-      updateMessage("マーカーを探しているよ…\nカメラをかざしてね！");
-    });
-
-    // キャラクタータップ時もショップへ
-    [planeFront, planeBack].forEach(el => {
-      el.addEventListener('click', () => {
+    // サイズ適用
+    [planeFront, planeBack].forEach(plane => {
+      plane.setAttribute('width', CONFIG.charaSize);
+      plane.setAttribute('height', CONFIG.charaSize);
+      plane.addEventListener('click', () => {
         window.open('https://chiisanamori.shop', '_blank');
       });
     });
 
-    // メッセージのフェード切り替え処理
-    function updateMessage(text) {
-      msgBox.classList.add('msg-hidden');
+    let isTargetFound = false;
+    let currentX = 0, currentY = 0;
+    let targetX = 0, targetY = 0;
+    let facingX = 1;
+    let currentScenario = SCENARIOS[0];
+    let animTimer = 0;
+    let lastTime = performance.now();
+
+    // マーカーを見つけた時
+    anchor.addEventListener("targetFound", () => {
+      isTargetFound = true;
+      statusDot.classList.add('active');
+      statusText.innerText = "小さな森の研究所：ともだちを観測中！";
+      
+      updatePanel(
+        "あっ！ちいさな森のともだちを発見！\nこんにちは〜！🍄",
+        "【観測成功】生体反応をキャッチしました"
+      );
+    });
+
+    // マーカーを見失った時
+    anchor.addEventListener("targetLost", () => {
+      isTargetFound = false;
+      statusDot.classList.remove('active');
+      statusText.innerText = "小さな森の研究所：スキャン中";
+
+      updatePanel(
+        "ちいさな森のともだちを探してね…🌱",
+        "【観測待機】グッズやカードにレンズをかざしてください"
+      );
+    });
+
+    // パネルのフェード切り替え
+    function updatePanel(speech, log) {
+      dialogPanel.classList.add('panel-hidden');
       setTimeout(() => {
-        msgBox.innerText = text;
-        msgBox.classList.remove('msg-hidden');
-      }, 500);
+        speechText.innerText = speech;
+        observationLog.innerText = log;
+        dialogPanel.classList.remove('panel-hidden');
+      }, 400);
     }
 
-    // 行動パターンと目的地の切り替え（ゆっくり間隔）
-    function scheduleNextState() {
+    // 次のシナリオを決定
+    function nextScenario() {
       if (!isTargetFound) {
-        setTimeout(scheduleNextState, 1000);
+        setTimeout(nextScenario, 1000);
         return;
       }
 
-      const states = ['walk', 'run', 'jump', 'idle'];
-      currentState = states[Math.floor(Math.random() * states.length)];
+      // ランダムにシナリオを選択
+      currentScenario = SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)];
 
-      // 広くなった範囲から次の目的地を決定
-      targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-      targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
+      // シナリオの目的に応じて移動先を設定
+      if (currentScenario.type === 'explore_back') {
+        // 奥（上方向）へ進む
+        targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+        targetY = 0.2 + Math.random() * (CONFIG.areaRangeY * 0.4);
+      } else if (currentScenario.type === 'run_towards') {
+        // 手前（下方向）へ向かってくる
+        targetX = (Math.random() - 0.5) * CONFIG.areaRangeX * 0.6;
+        targetY = -0.2 - Math.random() * (CONFIG.areaRangeY * 0.3);
+      } else if (currentScenario.type === 'walk_around') {
+        // 周囲を自由に散歩
+        targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+        targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
+      } else {
+        // ジャンプや立ち止まりはその場で
+        targetX = currentX;
+        targetY = currentY;
+      }
 
-      // セリフ更新
-      const list = messages[currentState];
-      updateMessage(list[Math.floor(Math.random() * list.length)]);
+      // パネルを更新
+      updatePanel(currentScenario.speech, currentScenario.log);
 
-      // 6秒〜8.5秒間じっくり表示
-      const nextDelay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
-      setTimeout(scheduleNextState, nextDelay);
+      // 次のセリフまでの時間（6.5〜8.5秒）
+      const delay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
+      setTimeout(nextScenario, delay);
     }
 
-    // メインアニメーションループ（滑らかな物理挙動）
+    // メインアニメーションループ
     function loop(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.1); // デルタタイム（秒）
+      const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
       if (isTargetFound) {
-        let speed = 0;
-        if (currentState === 'walk') speed = CONFIG.walkSpeed;
-        if (currentState === 'run')  speed = CONFIG.runSpeed;
-
+        const speed = currentScenario.speed;
         const dx = targetX - currentX;
         const dy = targetY - currentY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // 目的地の近くまでスムーズに移動
+        // スムーズな移動
         if (dist > 0.03 && speed > 0) {
-          const moveStep = Math.min(speed * dt, dist);
-          currentX += (dx / dist) * moveStep;
-          currentY += (dy / dist) * moveStep;
+          const step = Math.min(speed * dt, dist);
+          currentX += (dx / dist) * step;
+          currentY += (dy / dist) * step;
 
-          // 進行方向の左右反転
           if (Math.abs(dx) > 0.01) {
             facingX = dx > 0 ? 1 : -1;
           }
-
-          // 正面／後ろ姿の安定判定（チラつき防止のヒステリシス）
-          if (dy > 0.05) isMovingBackwards = true;   // 上（奥）へ進んでいる時は後ろ姿
-          if (dy < -0.05) isMovingBackwards = false; // 下（手前）へ進んでいる時は正面
-        } else if (currentState !== 'walk' && currentState !== 'run') {
-          // 停止中・ジャンプ中は正面を向く
-          isMovingBackwards = false;
         }
 
-        // キャラクターの上下・足踏み・ジャンプアニメーション
-        animTimer += dt;
-        let bounceZ = 0.05;
-        let tiltRot = 0;
-
-        if (currentState === 'jump') {
-          // 元気なジャンプ（高く・リズミカルに）
-          bounceZ += Math.abs(Math.sin(animTimer * 6)) * 0.16;
-          tiltRot = Math.sin(animTimer * 6) * 4;
-        } else if (currentState === 'run') {
-          // パタパタダッシュ（小刻みな跳ねと傾き）
-          bounceZ += Math.abs(Math.sin(animTimer * 14)) * 0.05;
-          tiltRot = Math.sin(animTimer * 14) * 7;
-        } else if (currentState === 'walk') {
-          // てくてく歩き（ゆったり上下＆左右の揺れ）
-          bounceZ += Math.abs(Math.sin(animTimer * 7)) * 0.025;
-          tiltRot = Math.sin(animTimer * 7) * 4;
-        } else {
-          // ひと休み（呼吸のようにふわふわ）
-          bounceZ += Math.sin(animTimer * 2.5) * 0.01;
-        }
-
-        // 前後スプライトの表示切り替え
-        if (isMovingBackwards) {
+        // ポーズ（正面 / 後ろ姿）の切り替え
+        if (currentScenario.pose === 'back') {
           planeFront.setAttribute('visible', 'false');
           planeBack.setAttribute('visible', 'true');
         } else {
@@ -296,11 +406,33 @@
           planeBack.setAttribute('visible', 'false');
         }
 
-        // 向き（左右反転）
+        // 上下動＆傾きアニメーション
+        animTimer += dt;
+        let bounceZ = 0.05;
+        let tiltRot = 0;
+
+        if (currentScenario.type === 'jump_joy') {
+          // 元気な大ジャンプ
+          bounceZ += Math.abs(Math.sin(animTimer * 5.5)) * 0.18;
+          tiltRot = Math.sin(animTimer * 5.5) * 5;
+        } else if (currentScenario.type === 'explore_back' || currentScenario.type === 'run_towards') {
+          // ダッシュ時のパタパタ跳ね
+          bounceZ += Math.abs(Math.sin(animTimer * 13)) * 0.05;
+          tiltRot = Math.sin(animTimer * 13) * 6;
+        } else if (currentScenario.type === 'walk_around') {
+          // てくてく歩き
+          bounceZ += Math.abs(Math.sin(animTimer * 6.5)) * 0.025;
+          tiltRot = Math.sin(animTimer * 6.5) * 3.5;
+        } else {
+          // 立ち止まり時の静かな呼吸
+          bounceZ += Math.sin(animTimer * 2) * 0.01;
+        }
+
+        // 向きの反映
         planeFront.setAttribute('scale', `${facingX} 1 1`);
         planeBack.setAttribute('scale', `${facingX} 1 1`);
 
-        // 滑らかな回転と位置反映
+        // 座標と回転の更新
         charaRoot.setAttribute('rotation', `0 0 ${tiltRot}`);
         charaRoot.setAttribute('position', `${currentX} ${currentY} ${bounceZ}`);
       }
@@ -308,8 +440,8 @@
       requestAnimationFrame(loop);
     }
 
-    // 開始
-    scheduleNextState();
+    // 実行開始
+    nextScenario();
     requestAnimationFrame(loop);
   </script>
 </body>
