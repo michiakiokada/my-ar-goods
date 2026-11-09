@@ -179,14 +179,14 @@
       isTargetFound = true;
       statusDot.classList.add('active');
       statusText.innerText = "小さな森の研究所：ともだちを観測中！";
-      updatePanel("あっ！ちいさな森のともだちを発見！\nこんにちは〜！🍄", "【観測成功】生体反応をキャッチしました");
+      updatePanel("あっ！小さな森のともだちを発見！\nこんにちは〜！🍄", "【観測成功】生体反応をキャッチしました");
     });
 
     anchor.addEventListener("targetLost", () => {
       isTargetFound = false;
       statusDot.classList.remove('active');
       statusText.innerText = "小さな森の研究所：スキャン中";
-      updatePanel("ちいさな森のともだちを探してね…🌱", "【観測待機】グッズやカードにレンズをかざしてください");
+      updatePanel("小さな森のともだちを探してね…🌱", "【観測待機】グッズやカードにレンズをかざしてください");
     });
 
     function updatePanel(speech, log) {
