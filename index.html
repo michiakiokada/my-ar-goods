@@ -27,10 +27,11 @@
       background: rgba(35, 50, 30, 0.75); backdrop-filter: blur(4px);
       border: 1px solid rgba(180, 220, 160, 0.4); color: #e8f5e9;
       padding: 6px 16px; border-radius: 20px; font-size: 12px;
-      display: flex; align-items: center; gap: 8px; z-index: 600;
+      display: flex; align-items: center; gap: 8px; z-index: 600; white-space: nowrap;
     }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffcc00; }
     .status-dot.active { background: #55efc4; box-shadow: 0 0 8px #55efc4; }
+    .status-dot.collabo { background: #ff7675; box-shadow: 0 0 10px #ff7675; }
 
     /* 下部UI */
     #ui-container {
@@ -78,116 +79,148 @@
     </a>
   </div>
 
+  <!-- maxTrack: 4 (同時に認識できる最大枚数) -->
   <a-scene 
-  mindar-image="imageTargetSrc: ./targets.mind; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
-  color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
-  vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 4; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
+    color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+    vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     
     <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
 
-    <a-entity id="target-anchor" mindar-image-target="targetIndex: 0">
-      <a-entity id="chara-root" position="0 0 0.05">
-        <!-- 動的に画像を切り替えるプレーン -->
-        <a-plane id="chara-plane" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5"></a-plane>
-      </a-entity>
-    </a-entity>
+    <!-- 0〜8番のターゲットアンカー -->
+    <a-entity id="anchor-0" mindar-image-target="targetIndex: 0"><a-entity id="root-0" position="0 0 0.05"><a-plane id="plane-0" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-1" mindar-image-target="targetIndex: 1"><a-entity id="root-1" position="0 0 0.05"><a-plane id="plane-1" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-2" mindar-image-target="targetIndex: 2"><a-entity id="root-2" position="0 0 0.05"><a-plane id="plane-2" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-3" mindar-image-target="targetIndex: 3"><a-entity id="root-3" position="0 0 0.05"><a-plane id="plane-3" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-4" mindar-image-target="targetIndex: 4"><a-entity id="root-4" position="0 0 0.05"><a-plane id="plane-4" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-5" mindar-image-target="targetIndex: 5"><a-entity id="root-5" position="0 0 0.05"><a-plane id="plane-5" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-6" mindar-image-target="targetIndex: 6"><a-entity id="root-6" position="0 0 0.05"><a-plane id="plane-6" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-7" mindar-image-target="targetIndex: 7"><a-entity id="root-7" position="0 0 0.05"><a-plane id="plane-7" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-8" mindar-image-target="targetIndex: 8"><a-entity id="root-8" position="0 0 0.05"><a-plane id="plane-8" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
   </a-scene>
 
   <script>
-    // 設定
+    // ========================================================
+    // ★【自由設定エリア】カード番号（0〜8）ごとのキャラクター割り当て
+    // ========================================================
+    const TARGET_MAPPING = {
+      0: "kinoko_talk",
+      1: "kinoko_talk",
+      2: "kinoko_talk",
+      3: "ishi_talk",
+      // 必要に応じて自由に追加できます（例：4: "ishi_talk", 6: "wakaba_talk"）
+    };
+
+    // 上記で指定しなかった番号（「それ以外」）のデフォルトキャラ
+    const DEFAULT_CHARA = "kinoko_talk";
+
+    // ========================================================
+    // キャラクターの基本マスターデータ
+    // ========================================================
+    const CHARA_MASTER = {
+      kinoko: {
+        name: '毒キノコちゃん',
+        csv: './kinoko_talk.csv',
+        scenarios: [],
+        currentImg: '',
+        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 0 }
+      },
+      ishi: {
+        name: '石ちゃん',
+        csv: './ishi_talk.csv',
+        scenarios: [],
+        currentImg: '',
+        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 1.5 }
+      },
+      wakaba: {
+        name: '若葉ちゃん',
+        csv: './wakaba_talk.csv',
+        scenarios: [],
+        currentImg: '',
+        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 3.0 }
+      }
+    };
+
+    const COLLABO_CSV = './collabo_talk.csv';
+    let collaboScenarios = [];
+
     const CONFIG = {
-      csvPath: './kinoko_talk.csv', // 読み込むCSVファイル名
       areaRangeX: 1.5,
       areaRangeY: 1.3,
       msgDurationMin: 6500,
       msgDurationMax: 8500
     };
 
+    // ターゲット番号からキャラのキー（kinoko, ishi, wakaba）を取得する関数
+    function getCharaKey(targetId) {
+      const raw = TARGET_MAPPING[targetId] || DEFAULT_CHARA;
+      // "kinoko_talk" でも "kinoko" でも動くように整形
+      return raw.replace('_talk', '').trim();
+    }
+
+    // 現在カメラに見えているターゲット番号（0〜8）のSet
+    const visibleTargetIds = new Set();
+
     // DOM要素
-    const anchor = document.getElementById('target-anchor');
-    const charaRoot = document.getElementById('chara-root');
-    const charaPlane = document.getElementById('chara-plane');
     const dialogPanel = document.getElementById('dialog-panel');
     const speechText = document.getElementById('speech-text');
     const observationLog = document.getElementById('observation-log');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
-
-    let scenarioList = [];
-    let isTargetFound = false;
-    let currentX = 0, currentY = 0;
-    let targetX = 0, targetY = 0;
-    let facingX = 1;
-    let currentAction = 'talk';
-    let animTimer = 0;
     let lastTime = performance.now();
 
-    // ショップへ飛ぶ
-    charaPlane.addEventListener('click', () => {
-      window.open('https://chiisanamori.shop', '_blank');
-    });
+    // 全プレーンにショップクリックを設定
+    for (let i = 0; i < 9; i++) {
+      const p = document.getElementById(`plane-${i}`);
+      if (p) p.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
+    }
 
-    // === ① CSVファイルの読み込み ＆ 自動解析 ===
-    async function loadCSV() {
+    // === ① CSV読み込み ===
+    async function fetchCSV(path) {
       try {
-        const response = await fetch(CONFIG.csvPath);
-        const text = await response.text();
-        const rows = text.trim().split('\n').map(row => row.split(','));
-        
-        // ヘッダー（1行目）を除外してオブジェクト化
-        scenarioList = rows.slice(1).map(cols => ({
+        const res = await fetch(path);
+        if (!res.ok) return [];
+        const text = await res.text();
+        const rows = text.trim().split('\n').map(r => r.split(','));
+        return rows.slice(1).map(cols => ({
           condition: cols[0]?.trim(),
           image: cols[1]?.trim(),
           action: cols[2]?.trim(),
           speech: cols[3]?.trim(),
           log: cols[4]?.trim()
         })).filter(item => item.speech);
-
-        console.log("CSV読み込み完了:", scenarioList.length, "件の生態データを登録");
       } catch (e) {
-        console.error("CSV読み込みエラー:", e);
+        return [];
       }
     }
 
-    // === ② 現在の時間・季節・イベント判定 ===
+    async function loadAllCSVs() {
+      for (const key of Object.keys(CHARA_MASTER)) {
+        CHARA_MASTER[key].scenarios = await fetchCSV(CHARA_MASTER[key].csv);
+      }
+      collaboScenarios = await fetchCSV(COLLABO_CSV);
+    }
+
+    // === ② 時間・環境判定 ===
     function getActiveConditions() {
       const now = new Date();
       const hour = now.getHours();
       const month = now.getMonth() + 1;
       const date = now.getDate();
-
       const conditions = ['ALL'];
 
-      // 時間帯判定
       if (hour >= 5 && hour < 11) conditions.push('朝');
       else if (hour >= 11 && hour < 17) conditions.push('昼');
       else conditions.push('夜');
 
-      // 季節判定
       if (month === 12 || month <= 2) conditions.push('寒');
       if (month >= 7 && month <= 8) conditions.push('暑');
 
-      // クリスマス判定
       if (month === 12 && date >= 18 && date <= 24) conditions.push('XMAS_PRE');
       if (month === 12 && date === 25) conditions.push('XMAS');
 
       return conditions;
     }
-
-    // マーカー認識イベント
-    anchor.addEventListener("targetFound", () => {
-      isTargetFound = true;
-      statusDot.classList.add('active');
-      statusText.innerText = "小さな森の研究所：ともだちを観測中！";
-      updatePanel("あっ！小さな森のともだちを発見！\nこんにちは〜！🍄", "【観測成功】生体反応をキャッチしました");
-    });
-
-    anchor.addEventListener("targetLost", () => {
-      isTargetFound = false;
-      statusDot.classList.remove('active');
-      statusText.innerText = "小さな森の研究所：スキャン中";
-      updatePanel("小さな森のともだちを探してね…🌱", "【観測待機】グッズやカードにレンズをかざしてください");
-    });
 
     function updatePanel(speech, log) {
       dialogPanel.classList.add('panel-hidden');
@@ -198,96 +231,183 @@
       }, 400);
     }
 
-    // === ③ 次のシナリオをCSVから抽選 ===
+    // === ③ 認識イベントの監視（0〜8） ===
+    for (let i = 0; i < 9; i++) {
+      const anchorEl = document.getElementById(`anchor-${i}`);
+      if (!anchorEl) continue;
+
+      anchorEl.addEventListener("targetFound", () => {
+        visibleTargetIds.add(i);
+        syncDisplayedCharacters();
+      });
+
+      anchorEl.addEventListener("targetLost", () => {
+        visibleTargetIds.delete(i);
+        syncDisplayedCharacters();
+      });
+    }
+
+    // 「現在どのキャラが何番のカードの上に表示されているか」を同期する
+    // ★ 同じキャラが複数枚映っても、代表の1枚だけを表示する
+    function getActiveCharacters() {
+      const activeMap = new Map(); // key: 'kinoko' -> targetId: 0
+
+      // 見えているターゲットを順にチェック
+      visibleTargetIds.forEach(targetId => {
+        const charaKey = getCharaKey(targetId);
+        // そのキャラがまだ選ばれていなければ、この targetId を代表にする
+        if (!activeMap.has(charaKey) && CHARA_MASTER[charaKey]) {
+          activeMap.set(charaKey, targetId);
+        }
+      });
+
+      const list = [];
+      activeMap.forEach((targetId, charaKey) => {
+        list.push({ charaKey, targetId, data: CHARA_MASTER[charaKey] });
+      });
+      return list;
+    }
+
+    function syncDisplayedCharacters() {
+      const activeCharas = getActiveCharacters();
+      const activeTargetIds = new Set(activeCharas.map(a => a.targetId));
+
+      // 代表に選ばれたカードのプレーンだけ visible="true" にする
+      for (let i = 0; i < 9; i++) {
+        const plane = document.getElementById(`plane-${i}`);
+        if (plane) {
+          plane.setAttribute('visible', activeTargetIds.has(i));
+        }
+      }
+
+      // ステータス表示の更新
+      statusDot.classList.remove('active', 'collabo');
+
+      // ★ 種類の数（activeCharas.length）で判定！
+      if (activeCharas.length === 3) {
+        // kinoko, ishi, wakaba の3種が揃った！
+        statusDot.classList.add('collabo');
+        statusText.innerText = "小さな森の研究所：3人あつまったよ！🎉";
+      } else if (activeCharas.length > 0) {
+        statusDot.classList.add('active');
+        const names = activeCharas.map(a => a.data.name).join('と');
+        statusText.innerText = `小さな森の研究所：${names}を観測中！`;
+      } else {
+        statusText.innerText = "小さな森の研究所：スキャン中";
+        updatePanel("小さな森のともだちを探してね…🌱", "【観測待機】グッズやカードにレンズをかざしてください");
+      }
+    }
+
+    // === ④ シナリオ抽選 ===
     function nextScenario() {
-      if (!isTargetFound || scenarioList.length === 0) {
+      const activeCharas = getActiveCharacters();
+
+      if (activeCharas.length === 0) {
         setTimeout(nextScenario, 1000);
         return;
       }
 
-      // 現在の条件に一致するセリフを絞り込み
       const activeConditions = getActiveConditions();
-      const availableList = scenarioList.filter(item => activeConditions.includes(item.condition));
-      const chosen = availableList[Math.floor(Math.random() * availableList.length)];
 
-      currentAction = chosen.action;
-
-      // 画像を切り替え
-      charaPlane.setAttribute('src', chosen.image);
-
-      // 行動に応じた移動目標の設定
-      if (currentAction === 'explore') {
-        // 奥へ走る
-        targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-        targetY = 0.2 + Math.random() * 0.4;
-      } else if (currentAction === 'walk') {
-        // お散歩
-        targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-        targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
+      // ★ 3種類のキャラがすべて揃っている時だけコラボ発動！
+      if (activeCharas.length === 3 && collaboScenarios.length > 0) {
+        const available = collaboScenarios.filter(item => activeConditions.includes(item.condition));
+        const chosen = (available.length > 0 ? available : collaboScenarios)[Math.floor(Math.random() * (available.length || collaboScenarios.length))];
+        updatePanel(chosen.speech, `【3人なかよしログ】${chosen.log}`);
       } else {
-        // 睡眠(sleep)、会話(talk)、ジャンプ(jump)はその場で
-        targetX = currentX;
-        targetY = currentY;
-      }
+        // 1〜2種類の場合：映っている種類の中からランダムに1人喋る
+        const chosenActive = activeCharas[Math.floor(Math.random() * activeCharas.length)];
+        const chara = chosenActive.data;
+        const state = chara.state;
+        const plane = document.getElementById(`plane-${chosenActive.targetId}`);
 
-      updatePanel(chosen.speech, `【生態ログ】${chosen.log}`);
+        const list = chara.scenarios.length > 0 ? chara.scenarios : CHARA_MASTER.kinoko.scenarios;
+
+        if (list.length > 0) {
+          const available = list.filter(item => activeConditions.includes(item.condition));
+          const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
+
+          state.action = chosen.action;
+          chara.currentImg = chosen.image;
+
+          if (plane && chosen.image) plane.setAttribute('src', chosen.image);
+
+          if (state.action === 'explore') {
+            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+            state.targetY = 0.2 + Math.random() * 0.4;
+          } else if (state.action === 'walk') {
+            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+            state.targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
+          } else {
+            state.targetX = state.currentX;
+            state.targetY = state.currentY;
+          }
+
+          updatePanel(chosen.speech, `【生態ログ】${chosen.log}`);
+        }
+      }
 
       const delay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
       setTimeout(nextScenario, delay);
     }
 
-    // === ④ アニメーションループ（震え防止・安定版） ===
+    // === ⑤ アニメーションループ ===
     function loop(now) {
       const dt = Math.min((now - lastTime) / 1000, 0.1);
       lastTime = now;
 
-      if (isTargetFound) {
-        let speed = 0;
-        if (currentAction === 'walk') speed = 0.20;     // 移動速度を少し落ち着かせました
-        if (currentAction === 'explore') speed = 0.35;
+      const activeCharas = getActiveCharacters();
 
-        const dx = targetX - currentX;
-        const dy = targetY - currentY;
+      activeCharas.forEach(({ charaKey, targetId, data }) => {
+        const state = data.state;
+        const plane = document.getElementById(`plane-${targetId}`);
+        const root = document.getElementById(`root-${targetId}`);
+        if (!plane || !root) return;
+
+        if (data.currentImg && plane.getAttribute('src') !== data.currentImg) {
+          plane.setAttribute('src', data.currentImg);
+        }
+
+        let speed = 0;
+        if (state.action === 'walk') speed = 0.20;
+        if (state.action === 'explore') speed = 0.35;
+
+        const dx = state.targetX - state.currentX;
+        const dy = state.targetY - state.currentY;
         const dist = Math.sqrt(dx * dx + dy * dy);
 
-        // 目的地に近づいたらピタッと止まり、左右の高速反転（チラつき）を防ぐ
         if (dist > 0.05 && speed > 0) {
           const step = Math.min(speed * dt, dist);
-          currentX += (dx / dist) * step;
-          currentY += (dy / dist) * step;
-          if (Math.abs(dx) > 0.03) facingX = dx > 0 ? 1 : -1;
+          state.currentX += (dx / dist) * step;
+          state.currentY += (dy / dist) * step;
+          if (Math.abs(dx) > 0.03) state.facingX = dx > 0 ? 1 : -1;
         }
 
-        animTimer += dt;
-        let bounceZ = 0.05; // 浮き上がりの基準
-        let tiltRot = 0;    // 傾き角度
+        state.animTimer += dt;
+        let bounceZ = 0.05;
+        let tiltRot = 0;
 
-        // --- ここで各アクションの揺れ幅を調整しています ---
-        if (currentAction === 'sleep') {
-          // 睡眠：とても静かに呼吸
-          bounceZ += Math.sin(animTimer * 1.5) * 0.005;
-        } else if (currentAction === 'jump') {
-          // ジャンプ：ふんわり跳ねる
-          bounceZ += Math.abs(Math.sin(animTimer * 4.0)) * 0.10;
-        } else if (currentAction === 'explore' || currentAction === 'walk') {
-          // 歩き・探索：以前の激しいブルブルを抑え、軽やかなトコトコ歩きに
-          bounceZ += Math.abs(Math.sin(animTimer * 5.0)) * 0.015;
-          tiltRot = Math.sin(animTimer * 5.0) * 2.0; // 左右の首振り角度を控えめに
+        if (state.action === 'sleep') {
+          bounceZ += Math.sin(state.animTimer * 1.5) * 0.005;
+        } else if (state.action === 'jump') {
+          bounceZ += Math.abs(Math.sin(state.animTimer * 4.0)) * 0.10;
+        } else if (state.action === 'explore' || state.action === 'walk') {
+          bounceZ += Math.abs(Math.sin(state.animTimer * 5.0)) * 0.015;
+          tiltRot = Math.sin(state.animTimer * 5.0) * 2.0;
         } else {
-          // 会話中（talk）：ゆっくりふわふわ浮遊
-          bounceZ += Math.sin(animTimer * 2.0) * 0.008;
+          bounceZ += Math.sin(state.animTimer * 2.0) * 0.008;
         }
 
-        charaPlane.setAttribute('scale', `${facingX} 1 1`);
-        charaRoot.setAttribute('rotation', `0 0 ${tiltRot}`);
-        charaRoot.setAttribute('position', `${currentX} ${currentY} ${bounceZ}`);
-      }
+        plane.setAttribute('scale', `${state.facingX} 1 1`);
+        root.setAttribute('rotation', `0 0 ${tiltRot}`);
+        root.setAttribute('position', `${state.currentX} ${state.currentY} ${bounceZ}`);
+      });
 
       requestAnimationFrame(loop);
     }
 
     // 起動
-    loadCSV().then(() => {
+    loadAllCSVs().then(() => {
       nextScenario();
       requestAnimationFrame(loop);
     });
