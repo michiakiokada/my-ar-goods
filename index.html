@@ -79,37 +79,71 @@
     </a>
   </div>
 
-  <!-- maxTrack: 3 で同時に最大3つ認識可能 -->
+  <!-- maxTrack: 4 (同時に認識できる最大枚数) -->
   <a-scene 
-    mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 3; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
+    mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 4; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
     color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
     vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     
     <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
 
-    <!-- 1人目：kinoko (targetIndex: 0) -->
-    <a-entity id="anchor-0" mindar-image-target="targetIndex: 0">
-      <a-entity id="root-0" position="0 0 0.05">
-        <a-plane id="plane-0" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5"></a-plane>
-      </a-entity>
-    </a-entity>
-
-    <!-- 2人目：ishi (targetIndex: 1) -->
-    <a-entity id="anchor-1" mindar-image-target="targetIndex: 1">
-      <a-entity id="root-1" position="0 0 0.05">
-        <a-plane id="plane-1" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5"></a-plane>
-      </a-entity>
-    </a-entity>
-
-    <!-- 3人目：wakaba (targetIndex: 2) -->
-    <a-entity id="anchor-2" mindar-image-target="targetIndex: 2">
-      <a-entity id="root-2" position="0 0 0.05">
-        <a-plane id="plane-2" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5"></a-plane>
-      </a-entity>
-    </a-entity>
+    <!-- 0〜8番のターゲットアンカー -->
+    <a-entity id="anchor-0" mindar-image-target="targetIndex: 0"><a-entity id="root-0" position="0 0 0.05"><a-plane id="plane-0" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-1" mindar-image-target="targetIndex: 1"><a-entity id="root-1" position="0 0 0.05"><a-plane id="plane-1" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-2" mindar-image-target="targetIndex: 2"><a-entity id="root-2" position="0 0 0.05"><a-plane id="plane-2" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-3" mindar-image-target="targetIndex: 3"><a-entity id="root-3" position="0 0 0.05"><a-plane id="plane-3" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-4" mindar-image-target="targetIndex: 4"><a-entity id="root-4" position="0 0 0.05"><a-plane id="plane-4" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-5" mindar-image-target="targetIndex: 5"><a-entity id="root-5" position="0 0 0.05"><a-plane id="plane-5" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-6" mindar-image-target="targetIndex: 6"><a-entity id="root-6" position="0 0 0.05"><a-plane id="plane-6" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-7" mindar-image-target="targetIndex: 7"><a-entity id="root-7" position="0 0 0.05"><a-plane id="plane-7" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-8" mindar-image-target="targetIndex: 8"><a-entity id="root-8" position="0 0 0.05"><a-plane id="plane-8" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
   </a-scene>
 
   <script>
+    // ========================================================
+    // ★【自由設定エリア】カード番号（0〜8）ごとのキャラクター割り当て
+    // ========================================================
+    const TARGET_MAPPING = {
+      0: "kinoko_talk",
+      1: "kinoko_talk",
+      2: "kinoko_talk",
+      3: "ishi_talk",
+      // 必要に応じて自由に追加できます（例：4: "ishi_talk", 6: "wakaba_talk"）
+    };
+
+    // 上記で指定しなかった番号（「それ以外」）のデフォルトキャラ
+    const DEFAULT_CHARA = "kinoko_talk";
+
+    // ========================================================
+    // キャラクターの基本マスターデータ
+    // ========================================================
+    const CHARA_MASTER = {
+      kinoko: {
+        name: '毒キノコちゃん',
+        csv: './kinoko_talk.csv',
+        scenarios: [],
+        currentImg: '',
+        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 0 }
+      },
+      ishi: {
+        name: '石ちゃん',
+        csv: './ishi_talk.csv',
+        scenarios: [],
+        currentImg: '',
+        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 1.5 }
+      },
+      wakaba: {
+        name: '若葉ちゃん',
+        csv: './wakaba_talk.csv',
+        scenarios: [],
+        currentImg: '',
+        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 3.0 }
+      }
+    };
+
+    const COLLABO_CSV = './collabo_talk.csv';
+    let collaboScenarios = [];
+
     const CONFIG = {
       areaRangeX: 1.5,
       areaRangeY: 1.3,
@@ -117,24 +151,15 @@
       msgDurationMax: 8500
     };
 
-    // キャラクター定義
-    const CHARAS = [
-      { id: 0, name: 'キノコちゃん', csv: './kinoko_talk.csv', scenarios: [] },
-      { id: 1, name: 'いし君',       csv: './ishi_talk.csv',   scenarios: [] },
-      { id: 2, name: 'わかばちゃん', csv: './wakaba_talk.csv', scenarios: [] }
-    ];
-    const COLLABO_CSV = './collabo_talk.csv';
-    let collaboScenarios = [];
+    // ターゲット番号からキャラのキー（kinoko, ishi, wakaba）を取得する関数
+    function getCharaKey(targetId) {
+      const raw = TARGET_MAPPING[targetId] || DEFAULT_CHARA;
+      // "kinoko_talk" でも "kinoko" でも動くように整形
+      return raw.replace('_talk', '').trim();
+    }
 
-    // 現在カメラに映っているターゲット（0, 1, 2）のセット
-    const activeTargets = new Set();
-
-    // 各キャラの個別アニメーション状態
-    const charaStates = [
-      { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 0 },
-      { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 1.5 },
-      { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 3.0 }
-    ];
+    // 現在カメラに見えているターゲット番号（0〜8）のSet
+    const visibleTargetIds = new Set();
 
     // DOM要素
     const dialogPanel = document.getElementById('dialog-panel');
@@ -144,15 +169,13 @@
     const statusText = document.getElementById('statusText');
     let lastTime = performance.now();
 
-    // 各キャラのクリックでショップを開く
-    [0, 1, 2].forEach(id => {
-      const plane = document.getElementById(`plane-${id}`);
-      if (plane) {
-        plane.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
-      }
-    });
+    // 全プレーンにショップクリックを設定
+    for (let i = 0; i < 9; i++) {
+      const p = document.getElementById(`plane-${i}`);
+      if (p) p.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
+    }
 
-    // === ① CSVの安全な読み込み ===
+    // === ① CSV読み込み ===
     async function fetchCSV(path) {
       try {
         const res = await fetch(path);
@@ -167,17 +190,14 @@
           log: cols[4]?.trim()
         })).filter(item => item.speech);
       } catch (e) {
-        console.warn(`CSV読み込みスキップ: ${path}`);
         return [];
       }
     }
 
     async function loadAllCSVs() {
-      // 各キャラのCSV読み込み
-      for (const chara of CHARAS) {
-        chara.scenarios = await fetchCSV(chara.csv);
+      for (const key of Object.keys(CHARA_MASTER)) {
+        CHARA_MASTER[key].scenarios = await fetchCSV(CHARA_MASTER[key].csv);
       }
-      // コラボCSV読み込み
       collaboScenarios = await fetchCSV(COLLABO_CSV);
     }
 
@@ -194,192 +214,4 @@
       else conditions.push('夜');
 
       if (month === 12 || month <= 2) conditions.push('寒');
-      if (month >= 7 && month <= 8) conditions.push('暑');
-
-      if (month === 12 && date >= 18 && date <= 24) conditions.push('XMAS_PRE');
-      if (month === 12 && date === 25) conditions.push('XMAS');
-
-      return conditions;
-    }
-
-    function updatePanel(speech, log) {
-      dialogPanel.classList.add('panel-hidden');
-      setTimeout(() => {
-        speechText.innerText = speech;
-        observationLog.innerText = log;
-        dialogPanel.classList.remove('panel-hidden');
-      }, 400);
-    }
-
-    // === ③ マーカー認識イベント（0, 1, 2を監視） ===
-    [0, 1, 2].forEach(id => {
-      const anchorEl = document.getElementById(`anchor-${id}`);
-      if (!anchorEl) return;
-
-      anchorEl.addEventListener("targetFound", () => {
-        activeTargets.add(id);
-        updateStatus();
-      });
-
-      anchorEl.addEventListener("targetLost", () => {
-        activeTargets.delete(id);
-        updateStatus();
-      });
-    });
-
-    function updateStatus() {
-      statusDot.classList.remove('active', 'collabo');
-
-      if (activeTargets.size >= 3) {
-        // 3人全員集合！
-        statusDot.classList.add('collabo');
-        statusText.innerText = "小さな森の研究所：3人あつまったよ！🎉";
-      } else if (activeTargets.size > 0) {
-        // 1〜2人観測中
-        statusDot.classList.add('active');
-        const names = Array.from(activeTargets).map(i => CHARAS[i].name).join('と');
-        statusText.innerText = `小さな森の研究所：${names}を観測中！`;
-      } else {
-        // 観測待機
-        statusText.innerText = "小さな森の研究所：スキャン中";
-        updatePanel("小さな森のともだちを探してね…🌱", "【観測待機】グッズやカードにレンズをかざしてください");
-      }
-    }
-
-    // === ④ シナリオ抽選（通常 or コラボ） ===
-    function nextScenario() {
-      if (activeTargets.size === 0) {
-        setTimeout(nextScenario, 1000);
-        return;
-      }
-
-      const activeConditions = getActiveConditions();
-
-      // 【3人揃った ＆ コラボCSVがある場合】➔ コラボ会話を優先！
-      if (activeTargets.size >= 3 && collaboScenarios.length > 0) {
-        const available = collaboScenarios.filter(item => activeConditions.includes(item.condition));
-        const chosen = (available.length > 0 ? available : collaboScenarios)[Math.floor(Math.random() * (available.length || collaboScenarios.length))];
-        updatePanel(chosen.speech, `【3人なかよしログ】${chosen.log}`);
-      } else {
-        // 1人または2人の場合：現在映っているキャラの中からランダムに1人喋る
-        const activeIds = Array.from(activeTargets);
-        const randomId = activeIds[Math.floor(Math.random() * activeIds.length)];
-        const chara = CHARAS[randomId];
-        const state = charaStates[randomId];
-        const plane = document.getElementById(`plane-${randomId}`);
-
-        // そのキャラのCSV、無ければキノコちゃんのCSVを代替
-        const list = chara.scenarios.length > 0 ? chara.scenarios : CHARAS[0].scenarios;
-
-        if (list.length > 0) {
-          const available = list.filter(item => activeConditions.includes(item.condition));
-          const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
-
-          state.action = chosen.action;
-          if (plane && chosen.image) plane.setAttribute('src', chosen.image);
-
-          if (state.action === 'explore') {
-            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-            state.targetY = 0.2 + Math.random() * 0.4;
-          } else if (state.action === 'walk') {
-            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-            state.targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
-          } else {
-            state.targetX = state.currentX;
-            state.targetY = state.currentY;
-          }
-
-          updatePanel(chosen.speech, `【生態ログ】${chosen.log}`);
-        }
-      }
-
-      const delay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
-      setTimeout(nextScenario, delay);
-    }
-
-    // === ⑤ アニメーションループ（複数キャラの個別計算） ===
-    function loop(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-
-      activeTargets.forEach(id => {
-        const state = charaStates[id];
-        const plane = document.getElementById(`plane-${id}`);
-        const root = document.getElementById(`root-${id}`);
-        if (!plane || !root) return;
-
-        let speed = 0;
-        if (state.action === 'walk') speed = 0.20;
-        if (state.action === 'explore') speed = 0.35;
-
-        const dx = state.targetX - state.currentX;
-        const dy = state.targetY - state.currentY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist > 0.05 && speed > 0) {
-          const step = Math.min(speed * dt, dist);
-          state.currentX += (dx / dist) * step;
-          state.currentY += (dy / dist) * step;
-          if (Math.abs(dx) > 0.03) state.facingX = dx > 0 ? 1 : -1;
-        }
-
-        state.animTimer += dt;
-        let bounceZ = 0.05;
-        let tiltRot = 0;
-
-        if (state.action === 'sleep') {
-          bounceZ += Math.sin(state.animTimer * 1.5) * 0.005;
-        } else if (state.action === 'jump') {
-          bounceZ += Math.abs(Math.sin(state.animTimer * 4.0)) * 0.10;
-        } else if (state.action === 'explore' || state.action === 'walk') {
-          bounceZ += Math.abs(Math.sin(state.animTimer * 5.0)) * 0.015;
-          tiltRot = Math.sin(state.animTimer * 5.0) * 2.0;
-        } else {
-          bounceZ += Math.sin(state.animTimer * 2.0) * 0.008;
-        }
-
-        plane.setAttribute('scale', `${state.facingX} 1 1`);
-        root.setAttribute('rotation', `0 0 ${tiltRot}`);
-        root.setAttribute('position', `${state.currentX} ${state.currentY} ${bounceZ}`);
-      });
-
-      requestAnimationFrame(loop);
-    }
-
-    // 起動
-    loadAllCSVs().then(() => {
-      nextScenario();
-      requestAnimationFrame(loop);
-    });
-  </script>
-</body>
-</html>         // 睡眠：とても静かに呼吸
-          bounceZ += Math.sin(animTimer * 1.5) * 0.005;
-        } else if (currentAction === 'jump') {
-          // ジャンプ：ふんわり跳ねる
-          bounceZ += Math.abs(Math.sin(animTimer * 4.0)) * 0.10;
-        } else if (currentAction === 'explore' || currentAction === 'walk') {
-          // 歩き・探索：以前の激しいブルブルを抑え、軽やかなトコトコ歩きに
-          bounceZ += Math.abs(Math.sin(animTimer * 5.0)) * 0.015;
-          tiltRot = Math.sin(animTimer * 5.0) * 2.0; // 左右の首振り角度を控えめに
-        } else {
-          // 会話中（talk）：ゆっくりふわふわ浮遊
-          bounceZ += Math.sin(animTimer * 2.0) * 0.008;
-        }
-
-        charaPlane.setAttribute('scale', `${facingX} 1 1`);
-        charaRoot.setAttribute('rotation', `0 0 ${tiltRot}`);
-        charaRoot.setAttribute('position', `${currentX} ${currentY} ${bounceZ}`);
-      }
-
-      requestAnimationFrame(loop);
-    }
-
-    // 起動
-    loadCSV().then(() => {
-      nextScenario();
-      requestAnimationFrame(loop);
-    });
-  </script>
-</body>
-</html>
+      if (month >= 7 &&
