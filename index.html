@@ -213,6 +213,12 @@
 
     const DEFAULT_CHARA = "kinoko_talk";
 
+    // サイトロゴ画像URL
+    const SITE_LOGO_URL = 'https://fancy-bird-bd3c.tcrygrs.workers.dev/images/site-logo.png';
+    const siteLogoImg = new Image();
+    siteLogoImg.crossOrigin = 'anonymous';
+    siteLogoImg.src = SITE_LOGO_URL;
+
     // ========================================================
     // キャラクターの基本マスターデータ
     // ========================================================
@@ -592,33 +598,42 @@
         ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
       }
 
-      // ⑥ ★【文字サイトロゴ】写真の左上にプレートとして独立配置（絶対に隠れない！）
-      ctx.save();
-      const logoBoxX = 20;
-      const logoBoxY = 20;
-      const logoBoxW = 200;
-      const logoBoxH = 46;
+      // ⑥ ★【指定のサイトロゴ画像】写真の左上に合成
+      const logoX = 20;
+      const logoY = 20;
+      if (siteLogoImg.complete && siteLogoImg.naturalWidth > 0) {
+        ctx.save();
+        // 画面幅に応じた適切なロゴサイズ（横幅最大170px程度）
+        const targetLogoW = Math.min(screenW * 0.38, 170);
+        const logoAspect = siteLogoImg.naturalHeight / siteLogoImg.naturalWidth;
+        const targetLogoH = targetLogoW * logoAspect;
 
-      // 半透明のダークグリーン背景＋淡い緑の枠線
-      ctx.fillStyle = 'rgba(25, 40, 25, 0.82)';
-      ctx.strokeStyle = 'rgba(180, 225, 160, 0.5)';
-      ctx.lineWidth = 1.5;
-      drawRoundRect(ctx, logoBoxX, logoBoxY, logoBoxW, logoBoxH, 12);
-      ctx.fill();
-      ctx.stroke();
+        // ドロップシャドウをつけてどんな背景でも視認性を確保
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.45)';
+        ctx.shadowBlur = 8;
+        ctx.shadowOffsetY = 2;
 
-      // 文字サイトロゴメイン
-      ctx.font = "bold 14px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
-      ctx.fillStyle = '#55efc4';
-      ctx.textAlign = 'left';
-      ctx.textBaseline = 'top';
-      ctx.fillText('🌿 小さな森の研究所', logoBoxX + 12, logoBoxY + 8);
+        ctx.drawImage(siteLogoImg, logoX, logoY, targetLogoW, targetLogoH);
+        ctx.restore();
+      } else {
+        // 画像未読み込み時のフォールバックプレート
+        ctx.save();
+        const logoBoxW = 190;
+        const logoBoxH = 42;
+        ctx.fillStyle = 'rgba(25, 40, 25, 0.82)';
+        ctx.strokeStyle = 'rgba(180, 225, 160, 0.5)';
+        ctx.lineWidth = 1.5;
+        drawRoundRect(ctx, logoX, logoY, logoBoxW, logoBoxH, 12);
+        ctx.fill();
+        ctx.stroke();
 
-      // サブタイトル
-      ctx.font = "10px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
-      ctx.fillStyle = '#d1fae5';
-      ctx.fillText('生態観測レンズ - AR SCOPE', logoBoxX + 14, logoBoxY + 27);
-      ctx.restore();
+        ctx.font = "bold 13px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
+        ctx.fillStyle = '#55efc4';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🌿 小さな森の研究所', logoX + 12, logoY + logoBoxH / 2);
+        ctx.restore();
+      }
 
       // ⑦ キャラクターのセリフ（コメント枠＆生態ログ）の合成
       const speech = speechText ? speechText.innerText : '';
@@ -671,7 +686,7 @@
         const logTotalH = log ? (logLines.length * logLineHeight + 12) : 0;
         const pHeight = 14 + speechTotalH + logTotalH + 14;
 
-        // コメント枠の位置（下部にハッシュタグが入るスペースを空けるため、下から38pxに配置）
+        // 下部ハッシュタグのスペースを考慮して下から38pxに配置
         const pY = screenH - pHeight - 38;
 
         // 白い角丸パネル＋ドロップシャドウ
@@ -784,7 +799,6 @@
         }
       }
 
-      // PC環境等のフォールバック
       const a = document.createElement('a');
       a.href = capturedDataUrl;
       a.download = fileName;
