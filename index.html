@@ -21,17 +21,20 @@
     .bottom-left  { bottom: 20px; left: 20px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
     .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
 
-    /* 上部ステータスヘッダー（サイトロゴ画像入り） */
+    /* 上部ステータスヘッダー */
     .lab-header {
       position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
-      background: rgba(28, 42, 25, 0.82); backdrop-filter: blur(6px);
+      background: rgba(28, 42, 25, 0.85); backdrop-filter: blur(6px);
       border: 1.5px solid rgba(180, 220, 160, 0.45);
-      padding: 5px 14px; border-radius: 25px;
+      padding: 6px 14px; border-radius: 25px;
       display: flex; align-items: center; gap: 10px; z-index: 600; white-space: nowrap;
       box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     }
     .header-logo-img {
-      height: 24px; width: auto; max-width: 130px; object-fit: contain; display: block;
+      height: 24px; width: auto; max-width: 130px; object-fit: contain; display: none;
+    }
+    .header-logo-text {
+      font-size: 12px; font-weight: bold; color: #55efc4; display: inline-block;
     }
     .status-group {
       display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #e8f5e9;
@@ -146,9 +149,10 @@
     <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
   </div>
 
-  <!-- ★ 画面上部ヘッダー：サイトロゴ画像と観測ステータス -->
+  <!-- 画面上部ヘッダー（画像読み込み失敗時は自動で文字ロゴに切り替わります） -->
   <div class="lab-header">
-    <img id="headerLogoImg" class="header-logo-img" src="https://fancy-bird-bd3c.tcrygrs.workers.dev/images/site-logo.png" crossorigin="anonymous" alt="小さな森の研究所">
+    <img id="headerLogoImg" class="header-logo-img" alt="ロゴ">
+    <span id="headerLogoText" class="header-logo-text">🌿 小さな森の研究所</span>
     <div class="status-group">
       <div id="statusDot" class="status-dot"></div>
       <span id="statusText">スキャン中</span>
@@ -214,16 +218,25 @@
 
   <script>
     // ========================================================
-    // ★【自由設定エリア】カード番号（0〜8）ごとのキャラクター割り当て
+    // ★【自由設定エリア】カード番号（0〜8）全9枚のキャラクター割り当て
     // ========================================================
     const TARGET_MAPPING = {
-      0: "kinoko_talk",
-      1: "kinoko_talk",
-      2: "kinoko_talk",
-      3: "ishi_talk",
+      0: "kinoko_talk",  // カード0: 毒キノコちゃん
+      1: "kinoko_talk",  // カード1: 毒キノコちゃん
+      2: "kinoko_talk",  // カード2: 毒キノコちゃん
+      3: "ishi_talk",    // カード3: 石ちゃん
+      4: "ishi_talk",    // カード4: 石ちゃん
+      5: "ishi_talk",    // カード5: 石ちゃん
+      6: "wakaba_talk",  // カード6: 若葉ちゃん
+      7: "wakaba_talk",  // カード7: 若葉ちゃん
+      8: "wakaba_talk",  // カード8: 若葉ちゃん
     };
 
+    // 上記以外の未登録カードが出た場合の予備キャラクター
     const DEFAULT_CHARA = "kinoko_talk";
+
+    // サイトロゴ画像のURL（同一フォルダに site-logo.png を置く場合は './site-logo.png' に変更可能）
+    const SITE_LOGO_URL = 'https://fancy-bird-bd3c.tcrygrs.workers.dev/images/site-logo.png';
 
     // ========================================================
     // キャラクターの基本マスターデータ
@@ -276,7 +289,23 @@
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const headerLogoImg = document.getElementById('headerLogoImg');
+    const headerLogoText = document.getElementById('headerLogoText');
     let lastTime = performance.now();
+
+    // ★ ロゴ画像の読み込み監視（破損時の×印を完全防止）
+    let isLogoImageLoaded = false;
+    headerLogoImg.crossOrigin = 'anonymous';
+    headerLogoImg.onload = () => {
+      isLogoImageLoaded = true;
+      headerLogoImg.style.display = 'block';
+      headerLogoText.style.display = 'none';
+    };
+    headerLogoImg.onerror = () => {
+      isLogoImageLoaded = false;
+      headerLogoImg.style.display = 'none';
+      headerLogoText.style.display = 'inline-block';
+    };
+    headerLogoImg.src = SITE_LOGO_URL;
 
     // 全プレーンにショップクリックを設定
     for (let i = 0; i < 9; i++) {
@@ -521,7 +550,6 @@
     const tweetBtn = document.getElementById('tweet-btn');
     const closeModalBtn = document.getElementById('close-modal-btn');
 
-    // 角丸描画ヘルパー
     function drawRoundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
       if (ctx.roundRect) {
@@ -605,21 +633,46 @@
         ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
       }
 
-      // ⑥ ★【サイトロゴ画像】画面と同じロゴ画像をスクショ上部中央に美しく合成
-      if (headerLogoImg && headerLogoImg.naturalWidth > 0) {
+      // ⑥ ★ サイトロゴ合成（画像があれば画像、なければ文字プレートを100%合成）
+      if (isLogoImageLoaded && headerLogoImg && headerLogoImg.naturalWidth > 0) {
         ctx.save();
-        const logoTargetW = Math.min(screenW * 0.45, 160);
+        const logoTargetW = Math.min(screenW * 0.42, 150);
         const logoAspect = headerLogoImg.naturalHeight / headerLogoImg.naturalWidth;
         const logoTargetH = logoTargetW * logoAspect;
         const logoX = (screenW - logoTargetW) / 2;
         const logoY = 22;
 
-        // ドロップシャドウをつけてどんな背景でも視認性を確保
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 8;
         ctx.shadowOffsetY = 2;
 
         ctx.drawImage(headerLogoImg, logoX, logoY, logoTargetW, logoTargetH);
+        ctx.restore();
+      } else {
+        // 画像未読込時のフォールバックロゴプレート
+        ctx.save();
+        const logoBoxW = 190;
+        const logoBoxH = 36;
+        const logoBoxX = (screenW - logoBoxW) / 2;
+        const logoBoxY = 22;
+
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 3;
+        ctx.fillStyle = 'rgba(25, 42, 25, 0.88)';
+        drawRoundRect(ctx, logoBoxX, logoBoxY, logoBoxW, logoBoxH, 18);
+        ctx.fill();
+
+        ctx.shadowColor = 'transparent';
+        ctx.strokeStyle = 'rgba(180, 230, 160, 0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+
+        ctx.font = "bold 13px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
+        ctx.fillStyle = '#55efc4';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🌿 小さな森の研究所', screenW / 2, logoBoxY + logoBoxH / 2);
         ctx.restore();
       }
 
@@ -634,7 +687,6 @@
         const paddingX = 18;
         const maxContentW = pWidth - paddingX * 2;
 
-        // セリフの自動改行計算
         ctx.font = "bold 15px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
         const speechLineHeight = 22;
         const speechLines = [];
@@ -651,7 +703,6 @@
           if (line) speechLines.push(line);
         });
 
-        // ログの自動改行計算
         ctx.font = "11px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
         const logLineHeight = 16;
         const logLines = [];
@@ -673,8 +724,6 @@
         const speechTotalH = speechLines.length * speechLineHeight;
         const logTotalH = log ? (logLines.length * logLineHeight + 12) : 0;
         const pHeight = 14 + speechTotalH + logTotalH + 14;
-
-        // 下部ハッシュタグスペースを考慮して下から38pxに配置
         const pY = screenH - pHeight - 38;
 
         // 白い角丸パネル＋ドロップシャドウ
