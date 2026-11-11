@@ -50,14 +50,71 @@
     #speech-text { color: #3e2714; font-size: 15px; font-weight: bold; line-height: 1.45; white-space: pre-wrap; }
     #observation-log { margin-top: 6px; font-size: 11px; color: #7b8a70; border-top: 1px dashed #e0d0c0; padding-top: 5px; }
 
-    #shop-btn {
-      pointer-events: auto; background: linear-gradient(135deg, #48bb78 0%, #2f855a 100%);
-      color: #ffffff; text-decoration: none; font-size: 13.5px; font-weight: bold;
-      padding: 10px 24px; border-radius: 25px; box-shadow: 0 4px 14px rgba(47, 133, 90, 0.35);
+    /* 操作ボタングループ */
+    .button-group {
+      display: flex; gap: 10px; width: 100%; justify-content: center; pointer-events: auto;
     }
+
+    #capture-btn {
+      appearance: none; border: none; cursor: pointer;
+      background: linear-gradient(135deg, #ff7b90 0%, #ee5253 100%);
+      color: #ffffff; font-size: 13.5px; font-weight: bold; font-family: inherit;
+      padding: 10px 18px; border-radius: 25px; box-shadow: 0 4px 14px rgba(238, 82, 83, 0.35);
+      display: flex; align-items: center; gap: 6px; transition: transform 0.1s ease;
+    }
+    #capture-btn:active { transform: scale(0.95); }
+
+    #shop-btn {
+      background: linear-gradient(135deg, #48bb78 0%, #2f855a 100%);
+      color: #ffffff; text-decoration: none; font-size: 13.5px; font-weight: bold;
+      padding: 10px 18px; border-radius: 25px; box-shadow: 0 4px 14px rgba(47, 133, 90, 0.35);
+      display: flex; align-items: center; justify-content: center;
+    }
+
+    /* 撮影フラッシュ演出 */
+    #shutter-flash {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #ffffff; opacity: 0; pointer-events: none; z-index: 2000;
+      transition: opacity 0.08s ease-out;
+    }
+    #shutter-flash.flashing { opacity: 0.85; }
+
+    /* スクリーンショット プレビューモーダル */
+    #preview-modal {
+      position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(20, 30, 20, 0.82); backdrop-filter: blur(6px);
+      z-index: 3000; display: none; flex-direction: column;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    #preview-modal.active { display: flex; }
+
+    .modal-card {
+      background: #ffffff; border-radius: 22px; padding: 16px;
+      max-width: 90%; max-height: 85%; display: flex; flex-direction: column;
+      align-items: center; box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+    }
+    #preview-img {
+      max-width: 100%; max-height: 55vh; border-radius: 12px;
+      border: 2px solid #e0e8dc; object-fit: contain;
+    }
+    .modal-hint {
+      margin-top: 10px; font-size: 11px; color: #636e72; text-align: center;
+    }
+    .modal-actions {
+      margin-top: 14px; display: flex; gap: 10px; width: 100%; justify-content: center;
+    }
+    .modal-btn {
+      padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: bold;
+      cursor: pointer; border: none; font-family: inherit;
+    }
+    .btn-save { background: #48bb78; color: white; }
+    .btn-close { background: #dfe6e9; color: #2d3436; }
   </style>
 </head>
 <body>
+
+  <!-- シャッターフラッシュ -->
+  <div id="shutter-flash"></div>
 
   <div class="scope-overlay">
     <div class="corner top-left"></div><div class="corner top-right"></div>
@@ -74,15 +131,30 @@
       <div id="speech-text">小さな森のともだちを探してね…🌱</div>
       <div id="observation-log">【観測待機】グッズやカードにレンズをかざしてください</div>
     </div>
-    <a id="shop-btn" href="https://chiisanamori.shop" target="_blank" rel="noopener noreferrer">
-      🌿 小さな森の研究所へ行く ➔
-    </a>
+    <div class="button-group">
+      <button id="capture-btn" type="button">📷 観測記録を撮る</button>
+      <a id="shop-btn" href="https://chiisanamori.shop" target="_blank" rel="noopener noreferrer">
+        🌿 研究所へ行く ➔
+      </a>
+    </div>
   </div>
 
-  <!-- maxTrack: 4 (同時に認識できる最大枚数) -->
+  <!-- プレビューモーダル -->
+  <div id="preview-modal">
+    <div class="modal-card">
+      <img id="preview-img" alt="観測記録プレビュー">
+      <div class="modal-hint">画像を長押し または 下のボタンから保存できます</div>
+      <div class="modal-actions">
+        <button id="save-share-btn" class="modal-btn btn-save" type="button">保存 / シェア</button>
+        <button id="close-modal-btn" class="modal-btn btn-close" type="button">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- maxTrack: 4 (同時に認識できる最大枚数) / preserveDrawingBuffer を追加してスクショ描画を有効化 -->
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 4; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
-    color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
+    color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights; preserveDrawingBuffer: true;" 
     vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     
     <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
@@ -405,6 +477,124 @@
 
       requestAnimationFrame(loop);
     }
+
+    // ========================================================
+    // ★ スクリーンショット撮影＆保存機能
+    // ========================================================
+    let capturedBlob = null;
+    let capturedDataUrl = '';
+
+    const shutterFlash = document.getElementById('shutter-flash');
+    const previewModal = document.getElementById('preview-modal');
+    const previewImg = document.getElementById('preview-img');
+    const captureBtn = document.getElementById('capture-btn');
+    const saveShareBtn = document.getElementById('save-share-btn');
+    const closeModalBtn = document.getElementById('close-modal-btn');
+
+    async function takeScreenshot() {
+      const sceneEl = document.querySelector('a-scene');
+      const video = document.querySelector('video');
+      const sceneCanvas = sceneEl ? sceneEl.canvas : null;
+
+      if (!video || !sceneCanvas) {
+        alert('カメラの準備中です。少々お待ちください。');
+        return;
+      }
+
+      // ① シャッター演出（ホワイトフラッシュ）
+      shutterFlash.classList.add('flashing');
+      setTimeout(() => shutterFlash.classList.remove('flashing'), 150);
+
+      // ② 合成用キャンバス作成
+      const outputCanvas = document.createElement('canvas');
+      const width = sceneCanvas.width || window.innerWidth;
+      const height = sceneCanvas.height || window.innerHeight;
+      outputCanvas.width = width;
+      outputCanvas.height = height;
+      const ctx = outputCanvas.getContext('2d');
+
+      // ③ カメラ背景（video）を描画（画面サイズに合わせて中央切り抜き）
+      const vWidth = video.videoWidth;
+      const vHeight = video.videoHeight;
+      if (vWidth && vHeight) {
+        const vRatio = vWidth / vHeight;
+        const cRatio = width / height;
+        let sx, sy, sw, sh;
+        if (vRatio > cRatio) {
+          sh = vHeight;
+          sw = vHeight * cRatio;
+          sx = (vWidth - sw) / 2;
+          sy = 0;
+        } else {
+          sw = vWidth;
+          sh = vWidth / cRatio;
+          sx = 0;
+          sy = (vHeight - sh) / 2;
+        }
+        ctx.drawImage(video, sx, sy, sw, sh, 0, 0, width, height);
+      }
+
+      // ④ 3D AR空間（キャラクター）を描画
+      ctx.drawImage(sceneCanvas, 0, 0, width, height);
+
+      // ⑤ 観測ロゴウォーターマークを右下に合成
+      const fontSize = Math.max(13, Math.floor(width * 0.026));
+      ctx.font = `bold ${fontSize}px sans-serif`;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.6)';
+      ctx.shadowBlur = 4;
+      const watermarkText = '🌿 小さな森の研究所 - 生態観測レンズ';
+      const textWidth = ctx.measureText(watermarkText).width;
+      ctx.fillText(watermarkText, width - textWidth - 18, height - 18);
+
+      // ⑥ 画像データ化
+      capturedDataUrl = outputCanvas.toDataURL('image/png');
+      outputCanvas.toBlob(blob => {
+        capturedBlob = blob;
+      }, 'image/png');
+
+      // ⑦ プレビュー表示
+      previewImg.src = capturedDataUrl;
+      previewModal.classList.add('active');
+    }
+
+    // 保存・共有アクション
+    async function handleSaveOrShare() {
+      const fileName = `chiisanamori_${Date.now()}.png`;
+
+      // Web Share API（スマホの画像保存やSNS共有に対応している場合）
+      if (navigator.share && capturedBlob) {
+        try {
+          const file = new File([capturedBlob], fileName, { type: 'image/png' });
+          if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            await navigator.share({
+              files: [file],
+              title: '小さな森の研究所 - 観測記録',
+              text: '小さな森の研究所で仲間たちを観測したよ！🌱'
+            });
+            return;
+          }
+        } catch (err) {
+          // 共有キャンセル時は何もしない
+          if (err.name === 'AbortError') return;
+        }
+      }
+
+      // PC環境またはWeb Share非対応時は通常ダウンロード
+      const a = document.createElement('a');
+      a.href = capturedDataUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    // イベント登録
+    captureBtn.addEventListener('click', takeScreenshot);
+    saveShareBtn.addEventListener('click', handleSaveOrShare);
+    closeModalBtn.addEventListener('click', () => {
+      previewModal.classList.remove('active');
+    });
 
     // 起動
     loadAllCSVs().then(() => {
