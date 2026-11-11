@@ -21,7 +21,7 @@
     .bottom-left  { bottom: 20px; left: 20px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
     .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
 
-    /* 上部ステータスヘッダー */
+    /* 上部ステータスヘッダー（ロゴ画像を直接表示） */
     .lab-header {
       position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
       background: rgba(28, 42, 25, 0.85); backdrop-filter: blur(6px);
@@ -31,10 +31,7 @@
       box-shadow: 0 4px 16px rgba(0,0,0,0.25);
     }
     .header-logo-img {
-      height: 24px; width: auto; max-width: 130px; object-fit: contain; display: none;
-    }
-    .header-logo-text {
-      font-size: 12px; font-weight: bold; color: #55efc4; display: inline-block;
+      height: 24px; width: auto; max-width: 140px; object-fit: contain; display: block;
     }
     .status-group {
       display: flex; align-items: center; gap: 6px; font-size: 11.5px; color: #e8f5e9;
@@ -149,10 +146,9 @@
     <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
   </div>
 
-  <!-- 画面上部ヘッダー（画像読み込み失敗時は自動で文字ロゴに切り替わります） -->
+  <!-- 上部ステータスヘッダー（HTMLと同じ場所の ./site-logo.png を直接読み込み） -->
   <div class="lab-header">
-    <img id="headerLogoImg" class="header-logo-img" alt="ロゴ">
-    <span id="headerLogoText" class="header-logo-text">🌿 小さな森の研究所</span>
+    <img id="headerLogoImg" class="header-logo-img" src="./site-logo.png" alt="小さな森の研究所">
     <div class="status-group">
       <div id="statusDot" class="status-dot"></div>
       <span id="statusText">スキャン中</span>
@@ -221,22 +217,18 @@
     // ★【自由設定エリア】カード番号（0〜8）全9枚のキャラクター割り当て
     // ========================================================
     const TARGET_MAPPING = {
-      0: "kinoko_talk",  // カード0: 毒キノコちゃん
-      1: "kinoko_talk",  // カード1: 毒キノコちゃん
-      2: "kinoko_talk",  // カード2: 毒キノコちゃん
-      3: "ishi_talk",    // カード3: 石ちゃん
-      4: "ishi_talk",    // カード4: 石ちゃん
-      5: "ishi_talk",    // カード5: 石ちゃん
-      6: "wakaba_talk",  // カード6: 若葉ちゃん
-      7: "wakaba_talk",  // カード7: 若葉ちゃん
-      8: "wakaba_talk",  // カード8: 若葉ちゃん
+      0: "kinoko_talk",  // 毒キノコちゃん
+      1: "kinoko_talk",  // 毒キノコちゃん
+      2: "kinoko_talk",  // 毒キノコちゃん
+      3: "ishi_talk",    // 石ちゃん
+      4: "ishi_talk",    // 石ちゃん
+      5: "ishi_talk",    // 石ちゃん
+      6: "wakaba_talk",  // 若葉ちゃん
+      7: "wakaba_talk",  // 若葉ちゃん
+      8: "wakaba_talk",  // 若葉ちゃん
     };
 
-    // 上記以外の未登録カードが出た場合の予備キャラクター
     const DEFAULT_CHARA = "kinoko_talk";
-
-    // サイトロゴ画像のURL（同一フォルダに site-logo.png を置く場合は './site-logo.png' に変更可能）
-    const SITE_LOGO_URL = 'https://fancy-bird-bd3c.tcrygrs.workers.dev/images/site-logo.png';
 
     // ========================================================
     // キャラクターの基本マスターデータ
@@ -289,23 +281,7 @@
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const headerLogoImg = document.getElementById('headerLogoImg');
-    const headerLogoText = document.getElementById('headerLogoText');
     let lastTime = performance.now();
-
-    // ★ ロゴ画像の読み込み監視（破損時の×印を完全防止）
-    let isLogoImageLoaded = false;
-    headerLogoImg.crossOrigin = 'anonymous';
-    headerLogoImg.onload = () => {
-      isLogoImageLoaded = true;
-      headerLogoImg.style.display = 'block';
-      headerLogoText.style.display = 'none';
-    };
-    headerLogoImg.onerror = () => {
-      isLogoImageLoaded = false;
-      headerLogoImg.style.display = 'none';
-      headerLogoText.style.display = 'inline-block';
-    };
-    headerLogoImg.src = SITE_LOGO_URL;
 
     // 全プレーンにショップクリックを設定
     for (let i = 0; i < 9; i++) {
@@ -557,7 +533,7 @@
       } else {
         ctx.moveTo(x + radius, y);
         ctx.lineTo(x + width - radius, y);
-        ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        ctx.quadraticCurveTo(x + width, y + radius);
         ctx.lineTo(x + width, y + height - radius);
         ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
         ctx.lineTo(x + radius, y + height);
@@ -577,7 +553,6 @@
         return;
       }
 
-      // ① シャッターフラッシュ演出
       shutterFlash.classList.add('flashing');
       setTimeout(() => shutterFlash.classList.remove('flashing'), 150);
 
@@ -585,7 +560,6 @@
       const screenH = window.innerHeight;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
-      // ② A-Frame公式 screenshot コンポーネントでARキャラを取得
       let arCanvas = null;
       try {
         if (sceneEl.components && sceneEl.components.screenshot) {
@@ -599,14 +573,13 @@
         console.warn('A-Frame screenshot fallback:', e);
       }
 
-      // ③ 合成用キャンバス作成
       const outputCanvas = document.createElement('canvas');
       outputCanvas.width = screenW * dpr;
       outputCanvas.height = screenH * dpr;
       const ctx = outputCanvas.getContext('2d');
       ctx.scale(dpr, dpr);
 
-      // ④ カメラ背景（video）を描画
+      // カメラ背景描画
       const vRect = video.getBoundingClientRect();
       if (vRect && vRect.width > 0 && vRect.height > 0) {
         ctx.drawImage(video, vRect.left, vRect.top, vRect.width, vRect.height);
@@ -626,15 +599,15 @@
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, screenW, screenH);
       }
 
-      // ⑤ ARキャラクターを描画
+      // ARキャラ描画
       if (arCanvas) {
         ctx.drawImage(arCanvas, 0, 0, screenW, screenH);
       } else if (sceneEl.canvas) {
         ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
       }
 
-      // ⑥ ★ サイトロゴ合成（画像があれば画像、なければ文字プレートを100%合成）
-      if (isLogoImageLoaded && headerLogoImg && headerLogoImg.naturalWidth > 0) {
+      // ★ サイトロゴ（./site-logo.png）をスクショ上部中央に合成
+      if (headerLogoImg && headerLogoImg.naturalWidth > 0) {
         ctx.save();
         const logoTargetW = Math.min(screenW * 0.42, 150);
         const logoAspect = headerLogoImg.naturalHeight / headerLogoImg.naturalWidth;
@@ -648,35 +621,9 @@
 
         ctx.drawImage(headerLogoImg, logoX, logoY, logoTargetW, logoTargetH);
         ctx.restore();
-      } else {
-        // 画像未読込時のフォールバックロゴプレート
-        ctx.save();
-        const logoBoxW = 190;
-        const logoBoxH = 36;
-        const logoBoxX = (screenW - logoBoxW) / 2;
-        const logoBoxY = 22;
-
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.35)';
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetY = 3;
-        ctx.fillStyle = 'rgba(25, 42, 25, 0.88)';
-        drawRoundRect(ctx, logoBoxX, logoBoxY, logoBoxW, logoBoxH, 18);
-        ctx.fill();
-
-        ctx.shadowColor = 'transparent';
-        ctx.strokeStyle = 'rgba(180, 230, 160, 0.6)';
-        ctx.lineWidth = 1.5;
-        ctx.stroke();
-
-        ctx.font = "bold 13px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
-        ctx.fillStyle = '#55efc4';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('🌿 小さな森の研究所', screenW / 2, logoBoxY + logoBoxH / 2);
-        ctx.restore();
       }
 
-      // ⑦ キャラクターのセリフ（コメント枠＆生態ログ）の合成
+      // セリフ枠＆生態ログ合成
       const speech = speechText ? speechText.innerText : '';
       const log = observationLog ? observationLog.innerText : '';
 
@@ -726,7 +673,6 @@
         const pHeight = 14 + speechTotalH + logTotalH + 14;
         const pY = screenH - pHeight - 38;
 
-        // 白い角丸パネル＋ドロップシャドウ
         ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
         ctx.shadowBlur = 16;
         ctx.shadowOffsetY = 6;
@@ -734,13 +680,11 @@
         drawRoundRect(ctx, pX, pY, pWidth, pHeight, 20);
         ctx.fill();
 
-        // ピンクの枠線
         ctx.shadowColor = 'transparent';
         ctx.strokeStyle = '#ff7b90';
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // セリフ描画
         ctx.font = "bold 15px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
         ctx.fillStyle = '#3e2714';
         ctx.textAlign = 'center';
@@ -752,7 +696,6 @@
           textY += speechLineHeight;
         });
 
-        // 点線区切り ＆ ログ描画
         if (log) {
           textY += 4;
           ctx.save();
@@ -776,7 +719,6 @@
           });
         }
 
-        // コメント枠の真下にハッシュタグ＆サイトURLを刻印
         ctx.font = "bold 10px 'Hiragino Maru Gothic ProN', sans-serif";
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
@@ -788,7 +730,7 @@
         ctx.restore();
       }
 
-      // ⑧ SNS用の投稿テキストを自動生成
+      // SNSテキスト生成
       const activeCharas = getActiveCharacters();
       let charaName = '小さな森のともだち';
       if (activeCharas.length === 3) {
@@ -800,7 +742,6 @@
       const cleanSpeech = speech ? speech.replace(/\n+/g, ' ') : '';
       currentSnsText = `小さな森の研究所で「${charaName}」を観測したよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chiisanamori.shop`;
 
-      // ⑨ 画像データ化 ＆ プレビューモーダル表示
       try {
         capturedDataUrl = outputCanvas.toDataURL('image/png');
         outputCanvas.toBlob(blob => {
@@ -816,7 +757,6 @@
       }
     }
 
-    // 画像保存・共有アクション
     async function handleSaveOrShare() {
       const fileName = `chiisanamori_${Date.now()}.png`;
 
@@ -844,7 +784,6 @@
       document.body.removeChild(a);
     }
 
-    // SNS文言コピーアクション
     async function handleCopySns() {
       try {
         if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -868,13 +807,11 @@
       }
     }
 
-    // 𝕏 (Twitter) でポスト
     function handleTweet() {
       const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(currentSnsText)}`;
       window.open(tweetUrl, '_blank', 'noopener,noreferrer');
     }
 
-    // イベント登録
     captureBtn.addEventListener('click', takeScreenshot);
     saveShareBtn.addEventListener('click', handleSaveOrShare);
     copySnsBtn.addEventListener('click', handleCopySns);
@@ -883,7 +820,6 @@
       previewModal.classList.remove('active');
     });
 
-    // 起動
     loadAllCSVs().then(() => {
       nextScenario();
       requestAnimationFrame(loop);
