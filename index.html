@@ -82,32 +82,49 @@
     /* スクリーンショット プレビューモーダル */
     #preview-modal {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-      background: rgba(20, 30, 20, 0.82); backdrop-filter: blur(6px);
+      background: rgba(20, 30, 20, 0.85); backdrop-filter: blur(6px);
       z-index: 3000; display: none; flex-direction: column;
-      align-items: center; justify-content: center; padding: 20px;
+      align-items: center; justify-content: center; padding: 16px;
     }
     #preview-modal.active { display: flex; }
 
     .modal-card {
       background: #ffffff; border-radius: 22px; padding: 16px;
-      max-width: 90%; max-height: 85%; display: flex; flex-direction: column;
-      align-items: center; box-shadow: 0 12px 32px rgba(0,0,0,0.4);
+      width: 100%; max-width: 380px; max-height: 90vh; overflow-y: auto;
+      display: flex; flex-direction: column; align-items: center; box-shadow: 0 12px 32px rgba(0,0,0,0.4);
     }
     #preview-img {
-      max-width: 100%; max-height: 55vh; border-radius: 12px;
+      max-width: 100%; max-height: 40vh; border-radius: 12px;
       border: 2px solid #e0e8dc; object-fit: contain;
     }
-    .modal-hint {
-      margin-top: 10px; font-size: 11px; color: #636e72; text-align: center;
+
+    /* SNS用テキスト表示ボックス */
+    .sns-box {
+      width: 100%; background: #f0fdf4; border: 1px solid #bbf7d0;
+      border-radius: 12px; padding: 10px 12px; margin-top: 10px;
+      text-align: left;
     }
+    .sns-title { font-size: 11px; font-weight: bold; color: #15803d; margin-bottom: 4px; }
+    #sns-text-preview {
+      font-size: 11.5px; color: #374151; line-height: 1.4; white-space: pre-wrap;
+      user-select: text; background: #ffffff; padding: 6px 8px; border-radius: 6px;
+      border: 1px solid #dcfce7; max-height: 70px; overflow-y: auto;
+    }
+
     .modal-actions {
-      margin-top: 14px; display: flex; gap: 10px; width: 100%; justify-content: center;
+      margin-top: 12px; display: flex; flex-direction: column; gap: 8px; width: 100%;
     }
+    .btn-row { display: flex; gap: 8px; width: 100%; }
+
     .modal-btn {
-      padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: bold;
-      cursor: pointer; border: none; font-family: inherit;
+      flex: 1; padding: 9px 12px; border-radius: 20px; font-size: 12.5px; font-weight: bold;
+      cursor: pointer; border: none; font-family: inherit; display: flex; align-items: center;
+      justify-content: center; gap: 4px; transition: opacity 0.15s;
     }
-    .btn-save { background: #48bb78; color: white; }
+    .modal-btn:active { opacity: 0.8; }
+    .btn-save  { background: #48bb78; color: white; }
+    .btn-copy  { background: #10b981; color: white; }
+    .btn-x     { background: #000000; color: white; }
     .btn-close { background: #dfe6e9; color: #2d3436; }
   </style>
 </head>
@@ -143,10 +160,22 @@
   <div id="preview-modal">
     <div class="modal-card">
       <img id="preview-img" alt="観測記録プレビュー">
-      <div class="modal-hint">画像を長押し または 下のボタンから保存できます</div>
+      
+      <!-- SNS投稿用テキストエリア -->
+      <div class="sns-box">
+        <div class="sns-title">🌿 SNS投稿用テキスト（ハッシュタグ付き）</div>
+        <div id="sns-text-preview"></div>
+      </div>
+
       <div class="modal-actions">
-        <button id="save-share-btn" class="modal-btn btn-save" type="button">保存 / シェア</button>
-        <button id="close-modal-btn" class="modal-btn btn-close" type="button">閉じる</button>
+        <div class="btn-row">
+          <button id="save-share-btn" class="modal-btn btn-save" type="button">💾 画像保存/共有</button>
+          <button id="copy-sns-btn" class="modal-btn btn-copy" type="button">📋 文言コピー</button>
+        </div>
+        <div class="btn-row">
+          <button id="tweet-btn" class="modal-btn btn-x" type="button">𝕏 でポスト</button>
+          <button id="close-modal-btn" class="modal-btn btn-close" type="button">閉じる</button>
+        </div>
       </div>
     </div>
   </div>
@@ -463,19 +492,23 @@
     }
 
     // ========================================================
-    // ★ スクリーンショット撮影＆保存機能（セリフ枠・文字ロゴ完全合成）
+    // ★ スクリーンショット撮影＆保存・SNSシェア機能
     // ========================================================
     let capturedBlob = null;
     let capturedDataUrl = '';
+    let currentSnsText = '';
 
     const shutterFlash = document.getElementById('shutter-flash');
     const previewModal = document.getElementById('preview-modal');
     const previewImg = document.getElementById('preview-img');
+    const snsTextPreview = document.getElementById('sns-text-preview');
     const captureBtn = document.getElementById('capture-btn');
     const saveShareBtn = document.getElementById('save-share-btn');
+    const copySnsBtn = document.getElementById('copy-sns-btn');
+    const tweetBtn = document.getElementById('tweet-btn');
     const closeModalBtn = document.getElementById('close-modal-btn');
 
-    // 角丸四角形を描画するヘルパー
+    // 角丸描画ヘルパー
     function drawRoundRect(ctx, x, y, width, height, radius) {
       ctx.beginPath();
       if (ctx.roundRect) {
@@ -503,7 +536,7 @@
         return;
       }
 
-      // ① シャッター演出
+      // ① シャッターフラッシュ演出
       shutterFlash.classList.add('flashing');
       setTimeout(() => shutterFlash.classList.remove('flashing'), 150);
 
@@ -559,36 +592,32 @@
         ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
       }
 
-      // ⑥ 上部ヘッダー文字ロゴバッジの合成（画面上の文字ヘッダーを忠実に再現）
-      const headerText = statusText ? statusText.innerText : '小さな森の研究所';
-      const isCollabo = statusDot.classList.contains('collabo');
-      const isActive = statusDot.classList.contains('active');
-
+      // ⑥ ★【文字サイトロゴ】写真の左上にプレートとして独立配置（絶対に隠れない！）
       ctx.save();
-      ctx.font = "bold 12px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
-      const badgeTextW = ctx.measureText(headerText).width;
-      const badgeW = badgeTextW + 36;
-      const badgeH = 28;
-      const badgeX = (screenW - badgeW) / 2;
-      const badgeY = 24;
+      const logoBoxX = 20;
+      const logoBoxY = 20;
+      const logoBoxW = 200;
+      const logoBoxH = 46;
 
-      ctx.fillStyle = 'rgba(35, 50, 30, 0.78)';
-      ctx.strokeStyle = 'rgba(180, 220, 160, 0.45)';
-      ctx.lineWidth = 1;
-      drawRoundRect(ctx, badgeX, badgeY, badgeW, badgeH, 14);
+      // 半透明のダークグリーン背景＋淡い緑の枠線
+      ctx.fillStyle = 'rgba(25, 40, 25, 0.82)';
+      ctx.strokeStyle = 'rgba(180, 225, 160, 0.5)';
+      ctx.lineWidth = 1.5;
+      drawRoundRect(ctx, logoBoxX, logoBoxY, logoBoxW, logoBoxH, 12);
       ctx.fill();
       ctx.stroke();
 
-      const dotColor = isCollabo ? '#ff7675' : (isActive ? '#55efc4' : '#ffcc00');
-      ctx.fillStyle = dotColor;
-      ctx.beginPath();
-      ctx.arc(badgeX + 16, badgeY + badgeH / 2, 4, 0, Math.PI * 2);
-      ctx.fill();
-
-      ctx.fillStyle = '#e8f5e9';
+      // 文字サイトロゴメイン
+      ctx.font = "bold 14px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
+      ctx.fillStyle = '#55efc4';
       ctx.textAlign = 'left';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(headerText, badgeX + 26, badgeY + badgeH / 2);
+      ctx.textBaseline = 'top';
+      ctx.fillText('🌿 小さな森の研究所', logoBoxX + 12, logoBoxY + 8);
+
+      // サブタイトル
+      ctx.font = "10px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
+      ctx.fillStyle = '#d1fae5';
+      ctx.fillText('生態観測レンズ - AR SCOPE', logoBoxX + 14, logoBoxY + 27);
       ctx.restore();
 
       // ⑦ キャラクターのセリフ（コメント枠＆生態ログ）の合成
@@ -602,7 +631,7 @@
         const paddingX = 18;
         const maxContentW = pWidth - paddingX * 2;
 
-        // セリフのテキスト自動折り返し計算
+        // セリフの自動改行計算
         ctx.font = "bold 15px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
         const speechLineHeight = 22;
         const speechLines = [];
@@ -619,7 +648,7 @@
           if (line) speechLines.push(line);
         });
 
-        // 生態ログのテキスト自動折り返し計算
+        // ログの自動改行計算
         ctx.font = "11px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
         const logLineHeight = 16;
         const logLines = [];
@@ -641,10 +670,12 @@
         const speechTotalH = speechLines.length * speechLineHeight;
         const logTotalH = log ? (logLines.length * logLineHeight + 12) : 0;
         const pHeight = 14 + speechTotalH + logTotalH + 14;
-        const pY = screenH - pHeight - 24;
 
-        // ダイアログ背景（白い角丸パネル＋影）
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
+        // コメント枠の位置（下部にハッシュタグが入るスペースを空けるため、下から38pxに配置）
+        const pY = screenH - pHeight - 38;
+
+        // 白い角丸パネル＋ドロップシャドウ
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
         ctx.shadowBlur = 16;
         ctx.shadowOffsetY = 6;
         ctx.fillStyle = 'rgba(255, 255, 255, 0.96)';
@@ -657,7 +688,7 @@
         ctx.lineWidth = 3;
         ctx.stroke();
 
-        // セリフ文字を描画
+        // セリフ描画
         ctx.font = "bold 15px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
         ctx.fillStyle = '#3e2714';
         ctx.textAlign = 'center';
@@ -669,7 +700,7 @@
           textY += speechLineHeight;
         });
 
-        // 点線区切り ＆ 生態ログ文字を描画
+        // 点線区切り ＆ ログ描画
         if (log) {
           textY += 4;
           ctx.save();
@@ -693,10 +724,31 @@
           });
         }
 
+        // コメント枠の真下にハッシュタグ＆サイトURLを刻印
+        ctx.font = "bold 10px 'Hiragino Maru Gothic ProN', sans-serif";
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+        ctx.shadowBlur = 4;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        ctx.fillText('#小さな森の研究所   chiisanamori.shop', screenW / 2, pY + pHeight + 8);
+
         ctx.restore();
       }
 
-      // ⑧ 画像データ化 ＆ プレビュー表示
+      // ⑧ SNS用の投稿テキストを自動生成
+      const activeCharas = getActiveCharacters();
+      let charaName = '小さな森のともだち';
+      if (activeCharas.length === 3) {
+        charaName = '3人なかよしのみんな';
+      } else if (activeCharas.length > 0) {
+        charaName = activeCharas.map(a => a.data.name).join('と');
+      }
+
+      const cleanSpeech = speech ? speech.replace(/\n+/g, ' ') : '';
+      currentSnsText = `小さな森の研究所で「${charaName}」を観測したよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chiisanamori.shop`;
+
+      // ⑨ 画像データ化 ＆ プレビューモーダル表示
       try {
         capturedDataUrl = outputCanvas.toDataURL('image/png');
         outputCanvas.toBlob(blob => {
@@ -704,6 +756,7 @@
         }, 'image/png');
 
         previewImg.src = capturedDataUrl;
+        snsTextPreview.innerText = currentSnsText;
         previewModal.classList.add('active');
       } catch (err) {
         console.error('スクリーンショット生成エラー:', err);
@@ -711,7 +764,7 @@
       }
     }
 
-    // 保存・共有アクション
+    // 画像保存・共有アクション
     async function handleSaveOrShare() {
       const fileName = `chiisanamori_${Date.now()}.png`;
 
@@ -722,7 +775,7 @@
             await navigator.share({
               files: [file],
               title: '小さな森の研究所 - 観測記録',
-              text: '小さな森の研究所で仲間たちを観測したよ！🌱'
+              text: currentSnsText
             });
             return;
           }
@@ -731,6 +784,7 @@
         }
       }
 
+      // PC環境等のフォールバック
       const a = document.createElement('a');
       a.href = capturedDataUrl;
       a.download = fileName;
@@ -739,9 +793,41 @@
       document.body.removeChild(a);
     }
 
+    // SNS文言コピーアクション
+    async function handleCopySns() {
+      try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(currentSnsText);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = currentSnsText;
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand('copy');
+          document.body.removeChild(ta);
+        }
+        copySnsBtn.innerText = '✅ コピー完了！';
+        setTimeout(() => {
+          copySnsBtn.innerText = '📋 文言コピー';
+        }, 2000);
+      } catch (e) {
+        alert('コピーに失敗しました。テキスト枠から手動でコピーしてください。');
+      }
+    }
+
+    // 𝕏 (Twitter) でポスト
+    function handleTweet() {
+      const tweetUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(currentSnsText)}`;
+      window.open(tweetUrl, '_blank', 'noopener,noreferrer');
+    }
+
     // イベント登録
     captureBtn.addEventListener('click', takeScreenshot);
     saveShareBtn.addEventListener('click', handleSaveOrShare);
+    copySnsBtn.addEventListener('click', handleCopySns);
+    tweetBtn.addEventListener('click', handleTweet);
     closeModalBtn.addEventListener('click', () => {
       previewModal.classList.remove('active');
     });
