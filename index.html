@@ -154,7 +154,7 @@
   <!-- maxTrack: 4 (同時に認識できる最大枚数) -->
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 4; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
-    color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights;" 
+    color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
     vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
     
     <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
@@ -463,7 +463,7 @@
     }
 
     // ========================================================
-    // ★ スクリーンショット撮影＆保存機能（バッファ消去対策対応）
+    // ★ スクリーンショット撮影＆保存機能（A-Frame Screenshot Engine連携）
     // ========================================================
     let capturedBlob = null;
     let capturedDataUrl = '';
@@ -479,7 +479,7 @@
       const sceneEl = document.querySelector('a-scene');
       const video = document.querySelector('video');
 
-      if (!video || !sceneEl || !sceneEl.canvas) {
+      if (!video || !sceneEl) {
         alert('カメラの準備中です。少々お待ちください。');
         return;
       }
@@ -488,23 +488,33 @@
       shutterFlash.classList.add('flashing');
       setTimeout(() => shutterFlash.classList.remove('flashing'), 150);
 
-      // ★【最重要】WebGLのバッファクリア対策：
-      // この瞬間に強制再描画（render）を実行し、直後のバッファからARキャラを直接抜き出します
-      if (sceneEl.renderer && sceneEl.camera) {
-        sceneEl.renderer.render(sceneEl.object3D, sceneEl.camera);
-      }
-
       const screenW = window.innerWidth;
       const screenH = window.innerHeight;
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
+      // ② A-Frame公式の screenshot コンポーネントを画面比率に合わせて呼び出す
+      let arCanvas = null;
+      try {
+        if (sceneEl.components && sceneEl.components.screenshot) {
+          // 画面のアスペクト比に合わせて撮影解像度を設定
+          sceneEl.setAttribute('screenshot', {
+            width: Math.round(screenW * dpr),
+            height: Math.round(screenH * dpr)
+          });
+          arCanvas = sceneEl.components.screenshot.getCanvas('perspective');
+        }
+      } catch (e) {
+        console.warn('A-Frame screenshot fallback:', e);
+      }
+
+      // ③ 合成用キャンバス作成
       const outputCanvas = document.createElement('canvas');
       outputCanvas.width = screenW * dpr;
       outputCanvas.height = screenH * dpr;
       const ctx = outputCanvas.getContext('2d');
       ctx.scale(dpr, dpr);
 
-      // ② カメラ映像（video）の描画（画面の位置・比率に一致）
+      // ④ カメラ背景（video）を描画
       const vRect = video.getBoundingClientRect();
       if (vRect && vRect.width > 0 && vRect.height > 0) {
         ctx.drawImage(video, vRect.left, vRect.top, vRect.width, vRect.height);
@@ -524,10 +534,14 @@
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, screenW, screenH);
       }
 
-      // ③ ARキャラクター（A-Frame WebGL Canvas）を重ねて描画
-      ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
+      // ⑤ ARキャラクターを描画（screenshotの独立Canvasを重ねる）
+      if (arCanvas) {
+        ctx.drawImage(arCanvas, 0, 0, screenW, screenH);
+      } else if (sceneEl.canvas) {
+        ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
+      }
 
-      // ④ 観測ロゴウォーターマークを右下に合成
+      // ⑥ 観測ロゴウォーターマークを右下に合成
       const fontSize = Math.max(12, Math.floor(screenW * 0.03));
       ctx.font = `bold ${fontSize}px sans-serif`;
       ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
@@ -538,13 +552,13 @@
       ctx.fillText(watermarkText, screenW - textWidth - 16, screenH - 16);
 
       try {
-        // ⑤ 画像データ化
+        // ⑦ 画像データ化
         capturedDataUrl = outputCanvas.toDataURL('image/png');
         outputCanvas.toBlob(blob => {
           capturedBlob = blob;
         }, 'image/png');
 
-        // ⑥ プレビュー表示
+        // ⑧ プレビュー表示
         previewImg.src = capturedDataUrl;
         previewModal.classList.add('active');
       } catch (err) {
@@ -557,7 +571,6 @@
     async function handleSaveOrShare() {
       const fileName = `chiisanamori_${Date.now()}.png`;
 
-      // スマホ向け（iOS / Androidの画像保存・共有ダイアログ）
       if (navigator.share && capturedBlob) {
         try {
           const file = new File([capturedBlob], fileName, { type: 'image/png' });
@@ -574,7 +587,6 @@
         }
       }
 
-      // PC向け または Web Share非対応時のフォールバック
       const a = document.createElement('a');
       a.href = capturedDataUrl;
       a.download = fileName;
