@@ -1,415 +1,248 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-  <title>小さな森の研究所 - 生態観測レンズ</title>
+  <title>観察用カメラ｜小さな森の研究所</title>
 
-  <!-- A-Frame & MindAR -->
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <!-- A-Frame & MindAR ライブラリ -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
 
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { overflow: hidden; font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif; user-select: none; }
-
-    /* 観測スコープ枠 */
-    .scope-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 500; }
-    .corner { position: absolute; width: 28px; height: 28px; border: 3px solid rgba(255, 255, 255, 0.7); }
-    .top-left     { top: 20px; left: 20px; border-right: none; border-bottom: none; border-radius: 8px 0 0 0; }
-    .top-right    { top: 20px; right: 20px; border-left: none; border-bottom: none; border-radius: 0 8px 0 0; }
-    .bottom-left  { bottom: 20px; left: 20px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
-    .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
-
-    /* 上部ステータス */
-    .lab-header {
-      position: fixed; top: 24px; left: 50%; transform: translateX(-50%);
-      background: rgba(35, 50, 30, 0.75); backdrop-filter: blur(4px);
-      border: 1px solid rgba(180, 220, 160, 0.4); color: #e8f5e9;
-      padding: 6px 16px; border-radius: 20px; font-size: 12px;
-      display: flex; align-items: center; gap: 8px; z-index: 600; white-space: nowrap;
-    }
-    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffcc00; }
-    .status-dot.active { background: #55efc4; box-shadow: 0 0 8px #55efc4; }
-    .status-dot.collabo { background: #ff7675; box-shadow: 0 0 10px #ff7675; }
-
-    /* 下部UI */
-    #ui-container {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      z-index: 1000; display: flex; flex-direction: column; align-items: center;
-      gap: 10px; width: 90%; max-width: 420px; pointer-events: none;
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
     }
 
-    #dialog-panel {
-      background: rgba(255, 255, 255, 0.96); border: 3px solid #ff7b90;
-      padding: 12px 18px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-      width: 100%; text-align: center; transition: opacity 0.4s ease, transform 0.4s ease;
+    /* 画面下部の操作UI */
+    .ui-container {
+      position: fixed;
+      bottom: 25px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none; /* ボタン以外はAR操作を邪魔しない */
     }
-    #dialog-panel.panel-hidden { opacity: 0; transform: scale(0.94); }
 
-    #speech-text { color: #3e2714; font-size: 15px; font-weight: bold; line-height: 1.45; white-space: pre-wrap; }
-    #observation-log { margin-top: 6px; font-size: 11px; color: #7b8a70; border-top: 1px dashed #e0d0c0; padding-top: 5px; }
+    /* 撮影シャッターボタン */
+    .capture-btn {
+      pointer-events: auto;
+      background: #ffffff;
+      border: 4px solid #7ba23f; /* 森の緑色 */
+      color: #333;
+      border-radius: 50%;
+      width: 72px;
+      height: 72px;
+      font-size: 28px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .capture-btn:active {
+      transform: scale(0.92);
+      background: #eef5e5;
+    }
 
-    #shop-btn {
-      pointer-events: auto; background: linear-gradient(135deg, #48bb78 0%, #2f855a 100%);
-      color: #ffffff; text-decoration: none; font-size: 13.5px; font-weight: bold;
-      padding: 10px 24px; border-radius: 25px; box-shadow: 0 4px 14px rgba(47, 133, 90, 0.35);
+    /* 撮影後のポップアップ画面（モーダル） */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal-card {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 320px;
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-card h3 {
+      margin: 0 0 10px;
+      color: #5c4033;
+      font-size: 1.1rem;
+    }
+    .preview-img {
+      width: 100%;
+      height: auto;
+      max-height: 240px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      margin-bottom: 12px;
+    }
+    .save-notice {
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 15px;
+    }
+
+    /* Xでポストするボタン */
+    .btn-x-share {
+      display: block;
+      background: #000;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 10px 0;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+    /* 閉じるボタン */
+    .btn-close {
+      background: #eee;
+      border: none;
+      color: #555;
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
     }
   </style>
 </head>
 <body>
 
-  <div class="scope-overlay">
-    <div class="corner top-left"></div><div class="corner top-right"></div>
-    <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
-  </div>
+  <!-- 合成に使用するロゴ画像（非表示で読み込み） -->
+  <img id="site-logo" src="/images/site-logo.png" style="display: none;" crossorigin="anonymous">
 
-  <div class="lab-header">
-    <div id="statusDot" class="status-dot"></div>
-    <span id="statusText">小さな森の研究所：スキャン中</span>
-  </div>
-
-  <div id="ui-container">
-    <div id="dialog-panel">
-      <div id="speech-text">小さな森のともだちを探してね…🌱</div>
-      <div id="observation-log">【観測待機】グッズやカードにレンズをかざしてください</div>
-    </div>
-    <a id="shop-btn" href="https://chiisanamori.shop" target="_blank" rel="noopener noreferrer">
-      🌿 小さな森の研究所へ行く ➔
-    </a>
-  </div>
-
-  <!-- maxTrack: 4 (同時に認識できる最大枚数) -->
+  <!-- ============================= -->
+  <!-- MindAR / A-Frame シーン定義   -->
+  <!-- ============================= -->
+  <!-- ※重要: preserveDrawingBuffer: true を入れないとスクショが真っ黒になります -->
   <a-scene 
-    mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 4; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
-    color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
-    vr-mode-ui="enabled: false" device-orientation-permission-ui="enabled: false">
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;" 
+    color-space="sRGB" 
+    renderer="colorManagement: true, physicallyCorrectLights: true, preserveDrawingBuffer: true" 
+    vr-mode-ui="enabled: false" 
+    device-orientation-permission-ui="enabled: false">
     
-    <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
+    <a-assets>
+      <!-- 出現させたい3Dモデル（.glbファイルなど） -->
+      <a-asset-item id="forestFriend" src="./friend.glb"></a-asset-item>
+    </a-assets>
 
-    <!-- 0〜8番のターゲットアンカー -->
-    <a-entity id="anchor-0" mindar-image-target="targetIndex: 0"><a-entity id="root-0" position="0 0 0.05"><a-plane id="plane-0" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-1" mindar-image-target="targetIndex: 1"><a-entity id="root-1" position="0 0 0.05"><a-plane id="plane-1" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-2" mindar-image-target="targetIndex: 2"><a-entity id="root-2" position="0 0 0.05"><a-plane id="plane-2" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-3" mindar-image-target="targetIndex: 3"><a-entity id="root-3" position="0 0 0.05"><a-plane id="plane-3" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-4" mindar-image-target="targetIndex: 4"><a-entity id="root-4" position="0 0 0.05"><a-plane id="plane-4" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-5" mindar-image-target="targetIndex: 5"><a-entity id="root-5" position="0 0 0.05"><a-plane id="plane-5" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-6" mindar-image-target="targetIndex: 6"><a-entity id="root-6" position="0 0 0.05"><a-plane id="plane-6" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-7" mindar-image-target="targetIndex: 7"><a-entity id="root-7" position="0 0 0.05"><a-plane id="plane-7" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-8" mindar-image-target="targetIndex: 8"><a-entity id="root-8" position="0 0 0.05"><a-plane id="plane-8" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- マーカー認識時に飛び出すキャラクター -->
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-gltf-model rotation="0 0 0 " position="0 0 0" scale="0.2 0.2 0.2" src="#forestFriend" animation="property: position; to: 0 0.05 0; dir: alternate; dur: 1000; loop: true"></a-gltf-model>
+    </a-entity>
   </a-scene>
 
+  <!-- ============================= -->
+  <!-- 画面上のUI（シャッターボタン） -->
+  <!-- ============================= -->
+  <div class="ui-container">
+    <button id="capture-btn" class="capture-btn" title="写真を撮る">📸</button>
+  </div>
+
+  <!-- ============================= -->
+  <!-- 撮影後のポップアップ画面     -->
+  <!-- ============================= -->
+  <div id="modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3>🌲 写真が撮れたよ！</h3>
+      <img id="preview" class="preview-img" alt="撮影プレビュー">
+      <div class="save-notice">※保存されない場合は画像を長押しして保存してね</div>
+      
+      <!-- Xシェアボタン -->
+      <a id="x-share-link" href="#" target="_blank" class="btn-x-share">
+        𝕏 にポストして見せる
+      </a>
+      <button id="close-btn" class="btn-close">もどる</button>
+    </div>
+  </div>
+
+  <!-- ============================= -->
+  <!-- スクショ合成＆投稿スクリプト -->
+  <!-- ============================= -->
   <script>
-    // ========================================================
-    // ★【自由設定エリア】カード番号（0〜8）ごとのキャラクター割り当て
-    // ========================================================
-    const TARGET_MAPPING = {
-      0: "kinoko_talk",
-      1: "kinoko_talk",
-      2: "kinoko_talk",
-      3: "ishi_talk",
-      // 必要に応じて自由に追加できます（例：4: "ishi_talk", 6: "wakaba_talk"）
-    };
+    const captureBtn = document.getElementById('capture-btn');
+    const modal = document.getElementById('modal');
+    const preview = document.getElementById('preview');
+    const xShareLink = document.getElementById('x-share-link');
+    const closeBtn = document.getElementById('close-btn');
+    const siteLogo = document.getElementById('site-logo');
 
-    // 上記で指定しなかった番号（「それ以外」）のデフォルトキャラ
-    const DEFAULT_CHARA = "kinoko_talk";
+    captureBtn.addEventListener('click', () => {
+      // 1. MindARのカメラ映像(video)とARキャンバスを取得
+      const video = document.querySelector('video');
+      const sceneEl = document.querySelector('a-scene');
+      const arCanvas = sceneEl.renderer.domElement;
 
-    // ========================================================
-    // キャラクターの基本マスターデータ
-    // ========================================================
-    const CHARA_MASTER = {
-      kinoko: {
-        name: '毒キノコちゃん',
-        csv: './kinoko_talk.csv',
-        scenarios: [],
-        currentImg: '',
-        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 0 }
-      },
-      ishi: {
-        name: '石ちゃん',
-        csv: './ishi_talk.csv',
-        scenarios: [],
-        currentImg: '',
-        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 1.5 }
-      },
-      wakaba: {
-        name: '若葉ちゃん',
-        csv: './wakaba_talk.csv',
-        scenarios: [],
-        currentImg: '',
-        state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 3.0 }
-      }
-    };
+      if (!video || !arCanvas) return;
 
-    const COLLABO_CSV = './collabo_talk.csv';
-    let collaboScenarios = [];
+      // 2. 合成用の裏キャンバスを作成
+      const canvas = document.createElement('canvas');
+      canvas.width = arCanvas.width;
+      canvas.height = arCanvas.height;
+      const ctx = canvas.getContext('2d');
 
-    const CONFIG = {
-      areaRangeX: 1.5,
-      areaRangeY: 1.3,
-      msgDurationMin: 6500,
-      msgDurationMax: 8500
-    };
+      // 背景のカメラ映像を描画（アスペクト比を合わせて中央トリミング描画）
+      const hRatio = canvas.width / video.videoWidth;
+      const vRatio = canvas.height / video.videoHeight;
+      const ratio = Math.max(hRatio, vRatio);
+      const centerShiftX = (canvas.width - video.videoWidth * ratio) / 2;
+      const centerShiftY = (canvas.height - video.videoHeight * ratio) / 2;
+      ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, centerShiftX, centerShiftY, video.videoWidth * ratio, video.videoHeight * ratio);
 
-    // ターゲット番号からキャラのキー（kinoko, ishi, wakaba）を取得する関数
-    function getCharaKey(targetId) {
-      const raw = TARGET_MAPPING[targetId] || DEFAULT_CHARA;
-      // "kinoko_talk" でも "kinoko" でも動くように整形
-      return raw.replace('_talk', '').trim();
-    }
+      // ARキャラクター（3Dモデル）を描画
+      ctx.drawImage(arCanvas, 0, 0, canvas.width, canvas.height);
 
-    // 現在カメラに見えているターゲット番号（0〜8）のSet
-    const visibleTargetIds = new Set();
+      // ★ 3. 画面右下に「小さな森の研究所」の透過ロゴを合成！
+      if (siteLogo && siteLogo.naturalWidth > 0) {
+        const logoWidth = canvas.width * 0.38; // 画面幅の約38%のサイズ
+        const logoHeight = (siteLogo.naturalHeight / siteLogo.naturalWidth) * logoWidth;
+        const margin = 25; // 端からの余白(px)
+        const x = canvas.width - logoWidth - margin;
+        const y = canvas.height - logoHeight - margin;
 
-    // DOM要素
-    const dialogPanel = document.getElementById('dialog-panel');
-    const speechText = document.getElementById('speech-text');
-    const observationLog = document.getElementById('observation-log');
-    const statusDot = document.getElementById('statusDot');
-    const statusText = document.getElementById('statusText');
-    let lastTime = performance.now();
-
-    // 全プレーンにショップクリックを設定
-    for (let i = 0; i < 9; i++) {
-      const p = document.getElementById(`plane-${i}`);
-      if (p) p.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
-    }
-
-    // === ① CSV読み込み ===
-    async function fetchCSV(path) {
-      try {
-        const res = await fetch(path);
-        if (!res.ok) return [];
-        const text = await res.text();
-        const rows = text.trim().split('\n').map(r => r.split(','));
-        return rows.slice(1).map(cols => ({
-          condition: cols[0]?.trim(),
-          image: cols[1]?.trim(),
-          action: cols[2]?.trim(),
-          speech: cols[3]?.trim(),
-          log: cols[4]?.trim()
-        })).filter(item => item.speech);
-      } catch (e) {
-        return [];
-      }
-    }
-
-    async function loadAllCSVs() {
-      for (const key of Object.keys(CHARA_MASTER)) {
-        CHARA_MASTER[key].scenarios = await fetchCSV(CHARA_MASTER[key].csv);
-      }
-      collaboScenarios = await fetchCSV(COLLABO_CSV);
-    }
-
-    // === ② 時間・環境判定 ===
-    function getActiveConditions() {
-      const now = new Date();
-      const hour = now.getHours();
-      const month = now.getMonth() + 1;
-      const date = now.getDate();
-      const conditions = ['ALL'];
-
-      if (hour >= 5 && hour < 11) conditions.push('朝');
-      else if (hour >= 11 && hour < 17) conditions.push('昼');
-      else conditions.push('夜');
-
-      if (month === 12 || month <= 2) conditions.push('寒');
-      if (month >= 7 && month <= 8) conditions.push('暑');
-
-      if (month === 12 && date >= 18 && date <= 24) conditions.push('XMAS_PRE');
-      if (month === 12 && date === 25) conditions.push('XMAS');
-
-      return conditions;
-    }
-
-    function updatePanel(speech, log) {
-      dialogPanel.classList.add('panel-hidden');
-      setTimeout(() => {
-        speechText.innerText = speech;
-        observationLog.innerText = log;
-        dialogPanel.classList.remove('panel-hidden');
-      }, 400);
-    }
-
-    // === ③ 認識イベントの監視（0〜8） ===
-    for (let i = 0; i < 9; i++) {
-      const anchorEl = document.getElementById(`anchor-${i}`);
-      if (!anchorEl) continue;
-
-      anchorEl.addEventListener("targetFound", () => {
-        visibleTargetIds.add(i);
-        syncDisplayedCharacters();
-      });
-
-      anchorEl.addEventListener("targetLost", () => {
-        visibleTargetIds.delete(i);
-        syncDisplayedCharacters();
-      });
-    }
-
-    // 「現在どのキャラが何番のカードの上に表示されているか」を同期する
-    // ★ 同じキャラが複数枚映っても、代表の1枚だけを表示する
-    function getActiveCharacters() {
-      const activeMap = new Map(); // key: 'kinoko' -> targetId: 0
-
-      // 見えているターゲットを順にチェック
-      visibleTargetIds.forEach(targetId => {
-        const charaKey = getCharaKey(targetId);
-        // そのキャラがまだ選ばれていなければ、この targetId を代表にする
-        if (!activeMap.has(charaKey) && CHARA_MASTER[charaKey]) {
-          activeMap.set(charaKey, targetId);
-        }
-      });
-
-      const list = [];
-      activeMap.forEach((targetId, charaKey) => {
-        list.push({ charaKey, targetId, data: CHARA_MASTER[charaKey] });
-      });
-      return list;
-    }
-
-    function syncDisplayedCharacters() {
-      const activeCharas = getActiveCharacters();
-      const activeTargetIds = new Set(activeCharas.map(a => a.targetId));
-
-      // 代表に選ばれたカードのプレーンだけ visible="true" にする
-      for (let i = 0; i < 9; i++) {
-        const plane = document.getElementById(`plane-${i}`);
-        if (plane) {
-          plane.setAttribute('visible', activeTargetIds.has(i));
-        }
+        ctx.drawImage(siteLogo, x, y, logoWidth, logoHeight);
       }
 
-      // ステータス表示の更新
-      statusDot.classList.remove('active', 'collabo');
+      // 4. 画像URLを生成
+      const dataUrl = canvas.toDataURL('image/png');
 
-      // ★ 種類の数（activeCharas.length）で判定！
-      if (activeCharas.length === 3) {
-        // kinoko, ishi, wakaba の3種が揃った！
-        statusDot.classList.add('collabo');
-        statusText.innerText = "小さな森の研究所：3人あつまったよ！🎉";
-      } else if (activeCharas.length > 0) {
-        statusDot.classList.add('active');
-        const names = activeCharas.map(a => a.data.name).join('と');
-        statusText.innerText = `小さな森の研究所：${names}を観測中！`;
-      } else {
-        statusText.innerText = "小さな森の研究所：スキャン中";
-        updatePanel("小さな森のともだちを探してね…🌱", "【観測待機】グッズやカードにレンズをかざしてください");
-      }
-    }
+      // 端末に自動ダウンロード（PCやAndroid向け）
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = '小さな森の研究所_観察記録.png';
+      a.click();
 
-    // === ④ シナリオ抽選 ===
-    function nextScenario() {
-      const activeCharas = getActiveCharacters();
+      // 5. モーダルにプレビューを表示
+      preview.src = dataUrl;
 
-      if (activeCharas.length === 0) {
-        setTimeout(nextScenario, 1000);
-        return;
-      }
+      // 6. X投稿リンクを生成（定型文 ＋ ハッシュタグ）
+      const postText = encodeURIComponent("『小さな森の研究所』の観察用カメラで、森のともだちを見つけたよ！📸🌲\n\n");
+      const postTags = "小さな森の研究所,ARグッズ";
+      xShareLink.href = `https://twitter.com/intent/tweet?text=${postText}&hashtags=${postTags}`;
 
-      const activeConditions = getActiveConditions();
+      // モーダルを開く
+      modal.style.display = 'flex';
+    });
 
-      // ★ 3種類のキャラがすべて揃っている時だけコラボ発動！
-      if (activeCharas.length === 3 && collaboScenarios.length > 0) {
-        const available = collaboScenarios.filter(item => activeConditions.includes(item.condition));
-        const chosen = (available.length > 0 ? available : collaboScenarios)[Math.floor(Math.random() * (available.length || collaboScenarios.length))];
-        updatePanel(chosen.speech, `【3人なかよしログ】${chosen.log}`);
-      } else {
-        // 1〜2種類の場合：映っている種類の中からランダムに1人喋る
-        const chosenActive = activeCharas[Math.floor(Math.random() * activeCharas.length)];
-        const chara = chosenActive.data;
-        const state = chara.state;
-        const plane = document.getElementById(`plane-${chosenActive.targetId}`);
-
-        const list = chara.scenarios.length > 0 ? chara.scenarios : CHARA_MASTER.kinoko.scenarios;
-
-        if (list.length > 0) {
-          const available = list.filter(item => activeConditions.includes(item.condition));
-          const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
-
-          state.action = chosen.action;
-          chara.currentImg = chosen.image;
-
-          if (plane && chosen.image) plane.setAttribute('src', chosen.image);
-
-          if (state.action === 'explore') {
-            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-            state.targetY = 0.2 + Math.random() * 0.4;
-          } else if (state.action === 'walk') {
-            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-            state.targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
-          } else {
-            state.targetX = state.currentX;
-            state.targetY = state.currentY;
-          }
-
-          updatePanel(chosen.speech, `【生態ログ】${chosen.log}`);
-        }
-      }
-
-      const delay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
-      setTimeout(nextScenario, delay);
-    }
-
-    // === ⑤ アニメーションループ ===
-    function loop(now) {
-      const dt = Math.min((now - lastTime) / 1000, 0.1);
-      lastTime = now;
-
-      const activeCharas = getActiveCharacters();
-
-      activeCharas.forEach(({ charaKey, targetId, data }) => {
-        const state = data.state;
-        const plane = document.getElementById(`plane-${targetId}`);
-        const root = document.getElementById(`root-${targetId}`);
-        if (!plane || !root) return;
-
-        if (data.currentImg && plane.getAttribute('src') !== data.currentImg) {
-          plane.setAttribute('src', data.currentImg);
-        }
-
-        let speed = 0;
-        if (state.action === 'walk') speed = 0.20;
-        if (state.action === 'explore') speed = 0.35;
-
-        const dx = state.targetX - state.currentX;
-        const dy = state.targetY - state.currentY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        if (dist > 0.05 && speed > 0) {
-          const step = Math.min(speed * dt, dist);
-          state.currentX += (dx / dist) * step;
-          state.currentY += (dy / dist) * step;
-          if (Math.abs(dx) > 0.03) state.facingX = dx > 0 ? 1 : -1;
-        }
-
-        state.animTimer += dt;
-        let bounceZ = 0.05;
-        let tiltRot = 0;
-
-        if (state.action === 'sleep') {
-          bounceZ += Math.sin(state.animTimer * 1.5) * 0.005;
-        } else if (state.action === 'jump') {
-          bounceZ += Math.abs(Math.sin(state.animTimer * 4.0)) * 0.10;
-        } else if (state.action === 'explore' || state.action === 'walk') {
-          bounceZ += Math.abs(Math.sin(state.animTimer * 5.0)) * 0.015;
-          tiltRot = Math.sin(state.animTimer * 5.0) * 2.0;
-        } else {
-          bounceZ += Math.sin(state.animTimer * 2.0) * 0.008;
-        }
-
-        plane.setAttribute('scale', `${state.facingX} 1 1`);
-        root.setAttribute('rotation', `0 0 ${tiltRot}`);
-        root.setAttribute('position', `${state.currentX} ${state.currentY} ${bounceZ}`);
-      });
-
-      requestAnimationFrame(loop);
-    }
-
-    // 起動
-    loadAllCSVs().then(() => {
-      nextScenario();
-      requestAnimationFrame(loop);
+    // モーダルを閉じる
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
     });
   </script>
 </body>
