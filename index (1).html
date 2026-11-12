@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>観察用カメラ｜小さな森の研究所</title>
+
+  <!-- A-Frame & MindAR ライブラリ -->
+  <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mind-ar@1.2.5/dist/mindar-image-aframe.prod.js"></script>
+
+  <style>
+    body {
+      margin: 0;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+
+    /* 画面下部の操作UI */
+    .ui-container {
+      position: fixed;
+      bottom: 25px;
+      left: 0;
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 100;
+      pointer-events: none; /* ボタン以外はAR操作を邪魔しない */
+    }
+
+    /* 撮影シャッターボタン */
+    .capture-btn {
+      pointer-events: auto;
+      background: #ffffff;
+      border: 4px solid #7ba23f; /* 森の緑色 */
+      color: #333;
+      border-radius: 50%;
+      width: 72px;
+      height: 72px;
+      font-size: 28px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+      cursor: pointer;
+      transition: transform 0.1s, background 0.2s;
+    }
+    .capture-btn:active {
+      transform: scale(0.92);
+      background: #eef5e5;
+    }
+
+    /* 撮影後のポップアップ画面（モーダル） */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      z-index: 200;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .modal-card {
+      background: #fff;
+      border-radius: 16px;
+      max-width: 320px;
+      width: 100%;
+      padding: 20px;
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    }
+    .modal-card h3 {
+      margin: 0 0 10px;
+      color: #5c4033;
+      font-size: 1.1rem;
+    }
+    .preview-img {
+      width: 100%;
+      height: auto;
+      max-height: 240px;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid #ddd;
+      margin-bottom: 12px;
+    }
+    .save-notice {
+      font-size: 0.75rem;
+      color: #888;
+      margin-bottom: 15px;
+    }
+
+    /* Xでポストするボタン */
+    .btn-x-share {
+      display: block;
+      background: #000;
+      color: #fff;
+      text-decoration: none;
+      font-weight: bold;
+      padding: 10px 0;
+      border-radius: 25px;
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+    /* 閉じるボタン */
+    .btn-close {
+      background: #eee;
+      border: none;
+      color: #555;
+      padding: 8px 18px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 合成に使用するロゴ画像（非表示で読み込み） -->
+  <img id="site-logo" src="/images/site-logo.png" style="display: none;" crossorigin="anonymous">
+
+  <!-- ============================= -->
+  <!-- MindAR / A-Frame シーン定義   -->
+  <!-- ============================= -->
+  <!-- ※重要: preserveDrawingBuffer: true を入れないとスクショが真っ黒になります -->
+  <a-scene 
+    mindar-image="imageTargetSrc: ./targets.mind; autoStart: true;" 
+    color-space="sRGB" 
+    renderer="colorManagement: true, physicallyCorrectLights: true, preserveDrawingBuffer: true" 
+    vr-mode-ui="enabled: false" 
+    device-orientation-permission-ui="enabled: false">
+    
+    <a-assets>
+      <!-- 出現させたい3Dモデル（.glbファイルなど） -->
+      <a-asset-item id="forestFriend" src="./friend.glb"></a-asset-item>
+    </a-assets>
+
+    <a-camera position="0 0 0" look-controls="enabled: false"></a-camera>
+
+    <!-- マーカー認識時に飛び出すキャラクター -->
+    <a-entity mindar-image-target="targetIndex: 0">
+      <a-gltf-model rotation="0 0 0 " position="0 0 0" scale="0.2 0.2 0.2" src="#forestFriend" animation="property: position; to: 0 0.05 0; dir: alternate; dur: 1000; loop: true"></a-gltf-model>
+    </a-entity>
+  </a-scene>
+
+  <!-- ============================= -->
+  <!-- 画面上のUI（シャッターボタン） -->
+  <!-- ============================= -->
+  <div class="ui-container">
+    <button id="capture-btn" class="capture-btn" title="写真を撮る">📸</button>
+  </div>
+
+  <!-- ============================= -->
+  <!-- 撮影後のポップアップ画面     -->
+  <!-- ============================= -->
+  <div id="modal" class="modal-overlay">
+    <div class="modal-card">
+      <h3>🌲 写真が撮れたよ！</h3>
+      <img id="preview" class="preview-img" alt="撮影プレビュー">
+      <div class="save-notice">※保存されない場合は画像を長押しして保存してね</div>
+      
+      <!-- Xシェアボタン -->
+      <a id="x-share-link" href="#" target="_blank" class="btn-x-share">
+        𝕏 にポストして見せる
+      </a>
+      <button id="close-btn" class="btn-close">もどる</button>
+    </div>
+  </div>
+
+  <!-- ============================= -->
+  <!-- スクショ合成＆投稿スクリプト -->
+  <!-- ============================= -->
+  <script>
+    const captureBtn = document.getElementById('capture-btn');
+    const modal = document.getElementById('modal');
+    const preview = document.getElementById('preview');
+    const xShareLink = document.getElementById('x-share-link');
+    const closeBtn = document.getElementById('close-btn');
+    const siteLogo = document.getElementById('site-logo');
+
+    captureBtn.addEventListener('click', () => {
+      // 1. MindARのカメラ映像(video)とARキャンバスを取得
+      const video = document.querySelector('video');
+      const sceneEl = document.querySelector('a-scene');
+      const arCanvas = sceneEl.renderer.domElement;
+
+      if (!video || !arCanvas) return;
+
+      // 2. 合成用の裏キャンバスを作成
+      const canvas = document.createElement('canvas');
+      canvas.width = arCanvas.width;
+      canvas.height = arCanvas.height;
+      const ctx = canvas.getContext('2d');
+
+      // 背景のカメラ映像を描画（アスペクト比を合わせて中央トリミング描画）
+      const hRatio = canvas.width / video.videoWidth;
+      const vRatio = canvas.height / video.videoHeight;
+      const ratio = Math.max(hRatio, vRatio);
+      const centerShiftX = (canvas.width - video.videoWidth * ratio) / 2;
+      const centerShiftY = (canvas.height - video.videoHeight * ratio) / 2;
+      ctx.drawImage(video, 0, 0, video.videoWidth, video.videoHeight, centerShiftX, centerShiftY, video.videoWidth * ratio, video.videoHeight * ratio);
+
+      // ARキャラクター（3Dモデル）を描画
+      ctx.drawImage(arCanvas, 0, 0, canvas.width, canvas.height);
+
+      // ★ 3. 画面右下に「小さな森の研究所」の透過ロゴを合成！
+      if (siteLogo && siteLogo.naturalWidth > 0) {
+        const logoWidth = canvas.width * 0.38; // 画面幅の約38%のサイズ
+        const logoHeight = (siteLogo.naturalHeight / siteLogo.naturalWidth) * logoWidth;
+        const margin = 25; // 端からの余白(px)
+        const x = canvas.width - logoWidth - margin;
+        const y = canvas.height - logoHeight - margin;
+
+        ctx.drawImage(siteLogo, x, y, logoWidth, logoHeight);
+      }
+
+      // 4. 画像URLを生成
+      const dataUrl = canvas.toDataURL('image/png');
+
+      // 端末に自動ダウンロード（PCやAndroid向け）
+      const a = document.createElement('a');
+      a.href = dataUrl;
+      a.download = '小さな森の研究所_観察記録.png';
+      a.click();
+
+      // 5. モーダルにプレビューを表示
+      preview.src = dataUrl;
+
+      // 6. X投稿リンクを生成（定型文 ＋ ハッシュタグ）
+      const postText = encodeURIComponent("『小さな森の研究所』の観察用カメラで、森のともだちを見つけたよ！📸🌲\n\n");
+      const postTags = "小さな森の研究所,ARグッズ";
+      xShareLink.href = `https://twitter.com/intent/tweet?text=${postText}&hashtags=${postTags}`;
+
+      // モーダルを開く
+      modal.style.display = 'flex';
+    });
+
+    // モーダルを閉じる
+    closeBtn.addEventListener('click', () => {
+      modal.style.display = 'none';
+    });
+  </script>
+</body>
+</html>
