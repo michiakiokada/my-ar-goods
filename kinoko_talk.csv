@@ -1,30 +1,34 @@
 条件,画像ファイル,動き,セリフ,生態ログ
-ALL,AR_images/wakaba_sleep.png,sleep,スー… ムニャムニャ…,無防備に眠っており観察に気づいていません
-ALL,AR_images/ishi_front.png,talk,この前買ったお洋服気に入ってるんだ。似合う？,新しいお洋服を見せて嬉しそうにしています
-ALL,AR_images/wakaba_front.png,walk,いつも小さな森を探検してるの。時々遊びにきてね？,楽しそうに森の案内をしています
-ALL,chara_hi.png,talk,虹の湖で3人で撮った写真が気に入ってるんだ。どんな写真が好き？,大切な思い出の写真を思い返しています
-ALL,chara_hi.png,talk,お料理してちょっぴり火傷しちゃった。あなたも気をつけてね？,包帯を見せながら心配そうに呼びかけています
-ALL,chara_hi.png,talk,最近忙しいの？無理しないでね！,こちらの様子を気遣ってくれています
-朝,chara_front.png,jump,今日も一日がんばろうね！えいえいおー！,気合いを入れて元気を分けてくれています
-朝,chara_front.png,talk,今日はお休みなの？どこかへおでかけ？,楽しそうに休日の予定を尋ねています
-ALL,chara_back.png,explore,あっちに何かあるのかな？いってみよう〜！,奥の茂みへ興味を示して駆け出しました
-朝,chara_front.png,jump,おはよう！今日もいいお天気になりそうだね！,朝の光を浴びて元気に飛び跳ねています
-朝,chara_front.png,talk,いってらっしゃい！気をつけて行ってきてね！,元気いっぱいに見送ってくれています
-昼,chara_front.png,walk,こんにちは！お昼ごはんはもう食べた？,お腹を空かせながら尋ねてきています
-夜,chara_front.png,talk,お帰りなさい！今日も一日お疲れさま！,優しく出迎えてねぎらってくれています
-夜,chara_sleep.png,sleep,ふわぁ〜…もう眠くなっちゃった。おやすみなさい…zzz,まぶたを重そうにして眠りにつきました
-寒,chara_front.png,talk,今日はちょっぴり寒くなったね。風邪ひいてない？,寒そうに息を吐きながら心配してくれています
-暑,chara_front.png,talk,今日はとっても暑いね〜！水分しっかりとってね？,日陰を探しながら呼びかけています
-XMAS_PRE,chara_front.png,jump,もうすぐクリスマスだね！何か予定はあるの？,クリスマスの訪れを心待ちにしてウキウキしています
-XMAS,chara_front.png,jump,メリークリスマス！サンタさんからプレゼントはもらった？,特別な日を全身でお祝いしています
-ALL,chara_hi.png,talk,いつも見てくれてありがとう。森のともだちのこと、みんなにも教えてあげてね！,
-ALL,chara_walk.png,jump,らんらん　らーん,うたってるのでしょうか。いいことあったのかな
-ALL,chara_find.png,talk,あった…あった…,何かを見つけたのでしょうか
-ALL,chara_sit.png,talk,ん〜　みんななにしてるのかな,どうしたのでしょう、なにか考えてるのかな
-ALL,chara_walk.png,explore,あっち行ってみよ　付いてきてね！,どこに行くのでしょうか
-ALL,chara_hi.png,talk,観察用カメラを使えば、森のともだちが見れるんだ,研究所の観察用カメラはすごいですね
-ALL,chara_hi.png,talk,毒キノコちゃんです。実はちょっとだけいたずら好きなんだ,毒キノコちゃんが自己紹介してますね
-夜,chara_hi.png,talk,さっきね、夕ごはん食べたよ　あなたも食べた？,今日はどんな食事をしたのかな
-夜,chara_hi.png,talk,今日も1日おつかれさまです。ゆっくり休んでね！,森の1日もそろそろ終わるようです　ゆっくりお休みなさい
-ALL,chara_sit.png,talk,こうやってると落ち着く　たまにはいいよね,いつも元気いっぱいで動いてるから、のんびりしてるようです
-ALL,chara_find.png,talk,やったー　また見つけた,何かいいもの見つけたようです
+ALL,AR_images/kinoko_sleep.png,sleep,スー… ムニャムニャ…,無防備に眠っており観察に気づいていません
+ALL,AR_images/kinoko_front.png,talk,この前買ったお洋服気に入ってるんだ。似合う？,新しいお洋服を見せて嬉しそうにしています
+ALL,AR_images/kinoko_front.png,walk,いつも小さな森を探検してるの。時々遊びにきてね？,楽しそうに森の案内をしています
+ALL,AR_images/kinoko_front.png,talk,虹の湖で3人で撮った写真が気に入ってるんだ。どんな写真が好き？,大切な思い出の写真を思い返しています
+ALL,AR_images/kinoko_front.png,talk,お料理してちょっぴり火傷しちゃった。あなたも気をつけてね？,包帯を見せながら心配そうに呼びかけています
+ALL,AR_images/kinoko_front.png,talk,最近忙しいの？無理しないでね！,こちらの様子を気遣ってくれています
+ALL,AR_images/kinoko_front.png,jump,今日も一日がんばろうね！えいえいおー！,気合いを入れて元気を分けてくれています
+ALL,AR_images/kinoko_front.png,talk,今日はお休みなの？どこかへおでかけ？,楽しそうに休日の予定を尋ねています
+ALL,AR_images/kinoko_back.png,explore,あっちに何かあるのかな？いってみよう〜！,奥の茂みへ興味を示して駆け出しました
+朝,AR_images/kinoko_front.png,jump,おはよう！今日もいいお天気になりそうだね！,朝の光を浴びて元気に飛び跳ねています
+朝,AR_images/kinoko_front.png,talk,いってらっしゃい！気をつけて行ってきてね！,元気いっぱいに見送ってくれています
+昼,AR_images/kinoko_front.png,walk,こんにちは！お昼ごはんはもう食べた？,お腹を空かせながら尋ねてきています
+夜,AR_images/kinoko_front.png,talk,お帰りなさい！今日も一日お疲れさま！,優しく出迎えてねぎらってくれています
+夜,AR_images/kinoko_sleep.png,sleep,ふわぁ〜…もう眠くなっちゃった。おやすみなさい…zzz,まぶたを重そうにして眠りにつきました
+寒,AR_images/kinoko_front.png,talk,今日はちょっぴり寒くなったね。風邪ひいてない？,寒そうに息を吐きながら心配してくれています
+暑,AR_images/kinoko_front.png,talk,今日はとっても暑いね〜！水分しっかりとってね？,日陰を探しながら呼びかけています
+XMAS_PRE,AR_images/kinoko_front.png,jump,もうすぐクリスマスだね！何か予定はあるの？,クリスマスの訪れを心待ちにしてウキウキしています
+XMAS,AR_images/kinoko_front.png,jump,メリークリスマス！サンタさんからプレゼントはもらった？,特別な日を全身でお祝いしています
+ALL,AR_images/kinoko_hi.png,talk,,
+ALL,AR_images/kinoko_walk.png,talk,,
+ALL,AR_images/kinoko_find.png,talk,,
+ALL,AR_images/kinoko_sit.png,talk,,
+ALL,AR_images/kinoko_walk.png,talk,,
+ALL,AR_images/kinoko_hi.png,talk,,
+ALL,AR_images/kinoko_hi.png,talk,,
+夜,AR_images/kinoko_hi.png,talk,,
+夜,AR_images/kinoko_hi.png,talk,今日も1日おつかれさまです。ゆっくりやすんでね！,
+ALL,AR_images/kinoko_sit.png,talk,,
+ALL,AR_images/kinoko_sit.png,talk,,
+ALL,AR_images/kinoko_walk.png,talk,,
+ALL,AR_images/kinoko_walk.png,talk,,
+ALL,AR_images/kinoko_find.png,talk,,
+ALL,AR_images/kinoko_find.png,talk,,
