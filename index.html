@@ -13,6 +13,11 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { overflow: hidden; font-family: 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif; user-select: none; }
 
+    /* VRボタンを完全に非表示にする */
+    .a-enter-vr {
+      display: none !important;
+    }
+    
     /* 観測スコープ枠 */
     .scope-overlay { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; z-index: 500; }
     .corner { position: absolute; width: 28px; height: 28px; border: 3px solid rgba(255, 255, 255, 0.7); }
