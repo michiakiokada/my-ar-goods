@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>小さな森の研究所 - スーパーリーチ（顕微鏡ズーム）</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: 'Courier New', Courier, monospace, sans-serif;
+    }
+    #stage {
+      position: relative;
+      width: 100vw;
+      height: 56.25vw;
+      max-width: 1200px;
+      max-height: 675px;
+      overflow: hidden;
+      background: #000;
+    }
+    #bg {
+      position: absolute; width: 100%; height: 100%;
+      object-fit: cover; transform: scale(1.0);
+      transition: filter 0.5s, transform 15s ease-out;
+    }
+    #stage.sp-playing #bg { transform: scale(1.08); }
+
+    #zoom-kinoko {
+      position: absolute; bottom: 5%; left: 50%;
+      height: 60%;
+      transform-origin: 52% 45%; /* 瞳を中心にズーム */
+      transform: translateX(-50%) scale(1.0);
+      z-index: 50; opacity: 0;
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.4));
+      transition: transform 6.8s cubic-bezier(0.1, 0.8, 0.2, 1), opacity 0.3s;
+    }
+    #zoom-kinoko.zooming {
+      opacity: 1; transform: translateX(-50%) scale(14.0);
+    }
+
+    #hud-container {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 60; pointer-events: none; opacity: 0; transition: opacity 0.4s;
+    }
+    #hud-container.active { opacity: 1; }
+
+    .reticle-ring {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      width: 320px; height: 320px;
+      border: 2px dashed #00ffcc; border-radius: 50%;
+      box-shadow: 0 0 20px rgba(0,255,204,0.5), inset 0 0 20px rgba(0,255,204,0.3);
+      animation: spin-ring 12s linear infinite;
+    }
+    @keyframes spin-ring {
+      0% { transform: translate(-50%, -50%) rotate(0deg); }
+      100% { transform: translate(-50%, -50%) rotate(360deg); }
+    }
+    .hud-cross-h {
+      position: absolute; top: 50%; left: 10%; width: 80%; height: 1px;
+      background: linear-gradient(90deg, transparent, #00ffcc, transparent);
+    }
+    .hud-cross-v {
+      position: absolute; top: 10%; left: 50%; width: 1px; height: 80%;
+      background: linear-gradient(180deg, transparent, #00ffcc, transparent);
+    }
+
+    #hud-info {
+      position: absolute; top: 10%; left: 8%;
+      color: #00ffcc; text-shadow: 0 0 10px #00ffcc;
+      font-size: clamp(14px, 2vw, 20px); line-height: 1.6; font-weight: bold;
+    }
+    #synchro-panel {
+      position: absolute; bottom: 8%; left: 50%;
+      transform: translateX(-50%); width: 65%;
+      text-align: center; color: #00ffcc; text-shadow: 0 0 15px #00ffcc;
+    }
+    #synchro-text {
+      font-size: clamp(18px, 2.5vw, 26px); font-weight: 900; margin-bottom: 8px;
+    }
+    #synchro-meter-box {
+      width: 100%; height: 18px; background: rgba(0,30,30,0.85);
+      border: 2px solid #00ffcc; border-radius: 10px;
+      padding: 2px; overflow: hidden; box-shadow: 0 0 15px rgba(0,255,204,0.4);
+    }
+    #synchro-bar {
+      width: 0%; height: 100%;
+      background: linear-gradient(90deg, #00ffcc, #ff00ff, #ffd700);
+      border-radius: 6px;
+      transition: width 5.8s cubic-bezier(0.1, 0.9, 0.2, 1);
+    }
+
+    #limit-break-title {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: clamp(32px, 6vw, 68px); font-weight: 900;
+      color: #ffffff; white-space: nowrap;
+      text-shadow: 0 0 30px #00ffcc, 0 0 60px #ff00ff;
+      z-index: 80; transition: transform 0.25s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    #limit-break-title.show { transform: translate(-50%, -50%) scale(1.15); }
+
+    #kinoko {
+      position: absolute; bottom: 5%; left: 50%;
+      transform: translateX(-50%) scale(0);
+      height: 60%; z-index: 20; transform-origin: bottom center;
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+      transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    #kinoko.show { transform: translateX(-50%) scale(1.0); }
+    .dance-kinoko {
+      animation: kinoko-sway 0.8s ease-in-out infinite alternate,
+                 kinoko-breathe 1.6s ease-in-out infinite alternate !important;
+    }
+    @keyframes kinoko-sway {
+      0% { transform: translateX(-50%) rotate(-3deg); }
+      100% { transform: translateX(-50%) rotate(3deg); }
+    }
+    @keyframes kinoko-breathe {
+      0% { transform: translateX(-50%) scale(1.0, 1.0); }
+      100% { transform: translateX(-50%) scale(1.03, 0.98); }
+    }
+    .jump { animation: jump-anim 0.4s ease-in-out infinite alternate !important; }
+    @keyframes jump-anim {
+      0% { transform: translateX(-50%) translateY(0); }
+      100% { transform: translateX(-50%) translateY(-25px); }
+    }
+
+    #smoke {
+      position: absolute; top: -20%; left: 50%;
+      transform: translateX(-50%) scale(0);
+      width: 80%; z-index: 25; opacity: 0; pointer-events: none;
+      transition: all 1.2s cubic-bezier(0.1, 0.8, 0.3, 1);
+    }
+    #smoke.active { transform: translateX(-50%) scale(1.3); opacity: 0.95; }
+    #smoke.fade { opacity: 0; transform: translateX(-50%) scale(1.6) translateY(-50px); transition: all 2.5s ease-out; }
+
+    #ishi {
+      position: absolute; bottom: 5%; left: -35%;
+      height: 42%; z-index: 22; transform-origin: bottom center;
+      transition: left 1.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+    }
+    #ishi.active { left: 12%; animation: ishi-bounce 0.8s ease-in-out infinite alternate; }
+    @keyframes ishi-bounce {
+      0% { transform: translateY(0) rotate(-2deg); }
+      100% { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    #wakaba {
+      position: absolute; bottom: 5%; right: -35%;
+      height: 52%; z-index: 22; transform-origin: bottom center;
+      transition: right 1.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+    }
+    #wakaba.active { right: 12%; animation: wakaba-sway 0.8s ease-in-out infinite alternate; }
+    @keyframes wakaba-sway {
+      0% { transform: translateY(0) rotate(3deg); }
+      100% { transform: translateY(-12px) rotate(-3deg); }
+    }
+
+    #confetti { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
+    #curtain {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; z-index: 100; opacity: 0; pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+    #curtain.blackout { opacity: 0.94; }
+    #curtain.fade-out { opacity: 1; transition: opacity 3s ease-in-out; }
+
+    #result-banner {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      color: #fff; font-size: clamp(24px, 4.5vw, 42px);
+      font-weight: bold; z-index: 150; opacity: 0;
+      transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      pointer-events: none;
+      text-shadow: 0 0 25px rgba(255,215,0,0.9), 0 4px 15px #000;
+      text-align: center; width: 90%; line-height: 1.4;
+    }
+    #result-banner.show { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+
+    #tap-to-start {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 200; cursor: pointer;
+      display: flex; justify-content: center; align-items: center;
+      background: rgba(0,0,0,0.4); color: #fff; font-size: 18px; font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="bg" src="sp_bg.png" alt="背景">
+
+  <img id="zoom-kinoko" src="sp_kinoko.png" alt="ズームキノコ">
+
+  <div id="hud-container">
+    <div class="reticle-ring"></div>
+    <div class="hud-cross-h"></div>
+    <div class="hud-cross-v"></div>
+    <div id="hud-info">
+      <div>TARGET: DOKU-KINOKO</div>
+      <div id="zoom-text">MAGNIFY: ×1.0</div>
+      <div>FOCUS: LOCK-ON</div>
+    </div>
+    <div id="synchro-panel">
+      <div id="synchro-text">RESONANCE: 0%</div>
+      <div id="synchro-meter-box"><div id="synchro-bar"></div></div>
+    </div>
+  </div>
+
+  <div id="limit-break-title">LIMIT BREAK!!</div>
+
+  <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+    <img id="smoke" src="sp_smoke.png" alt="毒の煙">
+    <img id="kinoko" src="sp_kinoko.png" alt="毒キノコちゃん">
+  </div>
+  <img id="ishi" src="sp_ishi.png" alt="石ちゃん">
+  <img id="wakaba" src="sp_wakaba.png" alt="若葉ちゃん">
+
+  <canvas id="confetti"></canvas>
+  <div id="curtain"></div>
+  <div id="result-banner"></div>
+
+  <div id="tap-to-start" onclick="initStart()">
+    <span>画面をタップして観測開始</span>
+  </div>
+</div>
+
+<audio id="audio" src="theme.mp3" preload="auto"></audio>
+
+<script>
+  const stage = document.getElementById('stage');
+  const curtain = document.getElementById('curtain');
+  const resultBanner = document.getElementById('result-banner');
+  const audio = document.getElementById('audio');
+  const kinoko = document.getElementById('kinoko');
+  const smoke = document.getElementById('smoke');
+  const ishi = document.getElementById('ishi');
+  const wakaba = document.getElementById('wakaba');
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  const tapOverlay = document.getElementById('tap-to-start');
+
+  const zoomKinoko = document.getElementById('zoom-kinoko');
+  const hudContainer = document.getElementById('hud-container');
+  const zoomText = document.getElementById('zoom-text');
+  const synchroText = document.getElementById('synchro-text');
+  const synchroBar = document.getElementById('synchro-bar');
+  const limitBreakTitle = document.getElementById('limit-break-title');
+
+  let isPlaying = false;
+  let confettiActive = false;
+  let particles = [];
+  let zoomInterval = null;
+
+  function resizeCanvas() {
+    canvas.width = stage.clientWidth;
+    canvas.height = stage.clientHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function playLockSE() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+    osc.frequency.setValueAtTime(1600, audioCtx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.2);
+  }
+
+  function playZoomRampSE() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(2200, audioCtx.currentTime + 5.5);
+    gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 5.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 5.5);
+  }
+
+  function playCrashSE() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1800, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, audioCtx.currentTime + 0.5);
+    gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.5);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.5);
+  }
+
+  function returnToNormal() {
+    curtain.classList.add('fade-out');
+    setTimeout(() => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '../index.html';
+      }
+    }, 1500);
+  }
+
+  function initStart() {
+    if (isPlaying) return;
+    tapOverlay.style.display = 'none';
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    startMicroscopeReach();
+  }
+
+  // 顕微鏡ズーム演出（約10.5秒）
+  function startMicroscopeReach() {
+    isPlaying = true;
+
+    playLockSE();
+    hudContainer.classList.add('active');
+    zoomKinoko.style.opacity = '1';
+
+    setTimeout(() => {
+      playZoomRampSE();
+      zoomKinoko.classList.add('zooming');
+      synchroBar.style.width = '100%';
+
+      let count = 0;
+      zoomInterval = setInterval(() => {
+        count += 2;
+        if (count <= 100) {
+          zoomText.textContent = `MAGNIFY: ×${(count * 10).toFixed(0)}`;
+          synchroText.textContent = `RESONANCE: ${count}%`;
+        }
+      }, 90);
+    }, 1500);
+
+    setTimeout(() => {
+      clearInterval(zoomInterval);
+      zoomText.textContent = 'MAGNIFY: ×1000 MAX!!';
+      synchroText.textContent = 'RESONANCE: OVER 100%!!';
+      playCrashSE();
+      limitBreakTitle.classList.add('show');
+    }, 8500);
+
+    setTimeout(() => {
+      hudContainer.classList.remove('active');
+      limitBreakTitle.classList.remove('show');
+      zoomKinoko.style.opacity = '0';
+      judgeResult();
+    }, 9800);
+  }
+
+  function judgeResult() {
+    curtain.classList.add('blackout');
+
+    setTimeout(() => {
+      const isWin = (Math.random() < 0.25);
+
+      if (isWin) {
+        resultBanner.innerHTML = '🔬 観 測 成 功 🔬<br><span style="font-size: 1.2em; color: #ffd700;">🎉 限界突破・大 当 た り 🎉</span>';
+        resultBanner.classList.add('show');
+        audio.play();
+
+        setTimeout(() => {
+          resultBanner.classList.remove('show');
+          curtain.classList.remove('blackout');
+          zoomKinoko.className = '';
+          startSpecialLivePerformance();
+        }, 1800);
+
+      } else {
+        resultBanner.innerHTML = '【 観 測 終 了 】<br><span style="font-size: 0.85em; color: #90a4ae;">……焦点ロスト（通常へ）</span>';
+        resultBanner.classList.add('show');
+
+        setTimeout(() => {
+          returnToNormal();
+        }, 2200);
+      }
+    }, 1200);
+  }
+
+  function startSpecialLivePerformance() {
+    stage.classList.add('sp-playing');
+    kinoko.classList.add('show', 'dance-kinoko');
+  }
+
+  audio.addEventListener('timeupdate', () => {
+    const sec = audio.currentTime;
+    if (sec >= 17.0 && !smoke.classList.contains('active')) smoke.classList.add('active');
+    if (sec >= 19.5 && !smoke.classList.contains('fade')) smoke.classList.add('fade');
+    if (sec >= 21.0 && !ishi.classList.contains('active')) ishi.classList.add('active');
+    if (sec >= 25.0 && !wakaba.classList.contains('active')) wakaba.classList.add('active');
+    if (sec >= 28.0 && !confettiActive) {
+      confettiActive = true;
+      kinoko.classList.add('jump');
+      initConfetti();
+    }
+    if (sec >= 44.0 && !curtain.classList.contains('fade-out')) {
+      curtain.classList.add('fade-out');
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    setTimeout(() => {
+      returnToNormal();
+    }, 1500);
+  });
+
+  function initConfetti() {
+    particles = [];
+    const colors = ['#ff8a80', '#ffd180', '#ffff8d', '#ccff90', '#a7ffeb', '#80d8ff', '#ea80fc'];
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: -10,
+        r: Math.random() * 6 + 4,
+        d: Math.random() * 2 + 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        tilt: Math.floor(Math.random() * 10) - 10,
+        tiltAngle: 0,
+        tiltAngleIncremental: (Math.random() * 0.07) + 0.05
+      });
+    }
+    requestAnimationFrame(renderConfetti);
+  }
+
+  function renderConfetti() {
+    if (!confettiActive) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.tiltAngle += p.tiltAngleIncremental;
+      p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+      p.tilt = Math.sin(p.tiltAngle - (i / 3)) * 15;
+      ctx.beginPath();
+      ctx.lineWidth = p.r;
+      ctx.strokeStyle = p.color;
+      ctx.moveTo(p.x + p.tilt + (p.r / 2), p.y);
+      ctx.lineTo(p.x + p.tilt, p.y + p.tilt + (p.r / 2));
+      ctx.stroke();
+      if (p.y > canvas.height) {
+        particles[i].x = Math.random() * canvas.width;
+        particles[i].y = -10;
+      }
+    }
+    requestAnimationFrame(renderConfetti);
+  }
+</script>
+</body>
+</html>

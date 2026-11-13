@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>小さな森の研究所 - スーパーリーチ（コラボスイッチ）</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      background: #000;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+      overflow: hidden;
+      font-family: sans-serif;
+    }
+    #stage {
+      position: relative;
+      width: 100vw;
+      height: 56.25vw;
+      max-width: 1200px;
+      max-height: 675px;
+      overflow: hidden;
+      background: #000;
+    }
+    .shake { animation: screen-shake 0.1s infinite; }
+    @keyframes screen-shake {
+      0% { transform: translate(0, 0); }
+      25% { transform: translate(-5px, 4px); }
+      50% { transform: translate(4px, -4px); }
+      75% { transform: translate(-4px, -3px); }
+      100% { transform: translate(3px, 3px); }
+    }
+    #bg {
+      position: absolute; width: 100%; height: 100%;
+      object-fit: cover; transform: scale(1.0);
+      transition: transform 15s ease-out;
+    }
+    #stage.sp-playing #bg { transform: scale(1.08); }
+
+    #cutin-container {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; z-index: 80; overflow: hidden;
+    }
+    .cutin-banner {
+      position: absolute; width: 140%; height: 38%; top: 31%; left: -20%;
+      transform: rotate(-6deg) scaleY(0); opacity: 0.85;
+      transition: transform 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+      box-shadow: 0 0 40px rgba(255,255,255,0.6);
+    }
+    .banner-red   { background: linear-gradient(90deg, transparent, #ff1744, #ff5252, transparent); }
+    .banner-blue  { background: linear-gradient(90deg, transparent, #455a64, #90a4ae, transparent); }
+    .banner-green { background: linear-gradient(90deg, transparent, #2e7d32, #69f0ae, transparent); }
+
+    .giant-char {
+      position: absolute; height: 120%; top: -10%;
+      filter: drop-shadow(0 0 25px rgba(255,255,255,0.8));
+      will-change: transform, left, right, top;
+    }
+    .cutin-kinoko {
+      left: -80%; transform: rotate(8deg);
+      transition: left 0.55s cubic-bezier(0.1, 0.8, 0.2, 1);
+    }
+    .cutin-kinoko.run { left: 110%; }
+    .cutin-ishi {
+      right: -80%; transform: rotate(-10deg);
+      transition: right 0.55s cubic-bezier(0.1, 0.8, 0.2, 1);
+    }
+    .cutin-ishi.run { right: 110%; }
+    .cutin-wakaba {
+      left: 30%; top: -140%;
+      transition: top 0.55s cubic-bezier(0.1, 0.8, 0.2, 1);
+    }
+    .cutin-wakaba.run { top: 120%; }
+
+    #flash-char {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      height: 85%; z-index: 90;
+      filter: drop-shadow(0 0 30px #ffd700);
+      transition: transform 0.12s ease-out;
+    }
+    #flash-char.show { transform: translate(-50%, -50%) scale(1.0); }
+
+    #collabo-title {
+      position: absolute; top: 45%; left: 50%;
+      transform: translate(-50%, -50%) scale(0);
+      font-size: clamp(28px, 5.5vw, 56px);
+      font-weight: 900; color: #fff;
+      text-shadow: 0 0 30px #ff0055, 0 0 60px #ffea00;
+      z-index: 95; white-space: nowrap;
+      transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    #collabo-title.show { transform: translate(-50%, -50%) scale(1.1); }
+
+    #kinoko {
+      position: absolute; bottom: 5%; left: 50%;
+      transform: translateX(-50%) scale(0);
+      height: 60%; z-index: 20; transform-origin: bottom center;
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+      transition: transform 0.6s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    #kinoko.show { transform: translateX(-50%) scale(1.0); }
+    .dance-kinoko {
+      animation: kinoko-sway 0.8s ease-in-out infinite alternate,
+                 kinoko-breathe 1.6s ease-in-out infinite alternate !important;
+    }
+    @keyframes kinoko-sway {
+      0% { transform: translateX(-50%) rotate(-3deg); }
+      100% { transform: translateX(-50%) rotate(3deg); }
+    }
+    @keyframes kinoko-breathe {
+      0% { transform: translateX(-50%) scale(1.0, 1.0); }
+      100% { transform: translateX(-50%) scale(1.03, 0.98); }
+    }
+    .jump { animation: jump-anim 0.4s ease-in-out infinite alternate !important; }
+    @keyframes jump-anim {
+      0% { transform: translateX(-50%) translateY(0); }
+      100% { transform: translateX(-50%) translateY(-25px); }
+    }
+
+    #smoke {
+      position: absolute; top: -20%; left: 50%;
+      transform: translateX(-50%) scale(0);
+      width: 80%; z-index: 25; opacity: 0; pointer-events: none;
+      transition: all 1.2s cubic-bezier(0.1, 0.8, 0.3, 1);
+    }
+    #smoke.active { transform: translateX(-50%) scale(1.3); opacity: 0.95; }
+    #smoke.fade { opacity: 0; transform: translateX(-50%) scale(1.6) translateY(-50px); transition: all 2.5s ease-out; }
+
+    #ishi {
+      position: absolute; bottom: 5%; left: -35%;
+      height: 42%; z-index: 22; transform-origin: bottom center;
+      transition: left 1.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+    }
+    #ishi.active { left: 12%; animation: ishi-bounce 0.8s ease-in-out infinite alternate; }
+    @keyframes ishi-bounce {
+      0% { transform: translateY(0) rotate(-2deg); }
+      100% { transform: translateY(-10px) rotate(2deg); }
+    }
+
+    #wakaba {
+      position: absolute; bottom: 5%; right: -35%;
+      height: 52%; z-index: 22; transform-origin: bottom center;
+      transition: right 1.5s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      filter: drop-shadow(0 10px 15px rgba(0,0,0,0.3));
+    }
+    #wakaba.active { right: 12%; animation: wakaba-sway 0.8s ease-in-out infinite alternate; }
+    @keyframes wakaba-sway {
+      0% { transform: translateY(0) rotate(3deg); }
+      100% { transform: translateY(-12px) rotate(-3deg); }
+    }
+
+    #confetti { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 70; pointer-events: none; }
+    #curtain {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      background: #000; z-index: 100; opacity: 0; pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+    #curtain.blackout { opacity: 0.94; }
+    #curtain.fade-out { opacity: 1; transition: opacity 3s ease-in-out; }
+
+    #result-banner {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%) scale(0.8);
+      color: #fff; font-size: clamp(24px, 4.5vw, 42px);
+      font-weight: bold; z-index: 150; opacity: 0;
+      transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+      pointer-events: none;
+      text-shadow: 0 0 25px rgba(255,215,0,0.9), 0 4px 15px #000;
+      text-align: center; width: 90%; line-height: 1.4;
+    }
+    #result-banner.show { transform: translate(-50%, -50%) scale(1.0); opacity: 1; }
+
+    #tap-to-start {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      z-index: 200; cursor: pointer;
+      display: flex; justify-content: center; align-items: center;
+      background: rgba(0,0,0,0.4); color: #fff; font-size: 18px; font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+<div id="stage">
+  <img id="bg" src="sp_bg.png" alt="背景">
+
+  <div style="position: absolute; bottom: 0; left: 0; width: 100%; height: 100%; pointer-events: none;">
+    <img id="smoke" src="sp_smoke.png" alt="毒の煙">
+    <img id="kinoko" src="sp_kinoko.png" alt="毒キノコちゃん">
+  </div>
+  <img id="ishi" src="sp_ishi.png" alt="石ちゃん">
+  <img id="wakaba" src="sp_wakaba.png" alt="若葉ちゃん">
+
+  <div id="cutin-container">
+    <div id="cutin-bg-banner" class="cutin-banner"></div>
+    <img id="giant-kinoko" class="giant-char cutin-kinoko" src="sp_kinoko.png" alt="巨大キノコ">
+    <img id="giant-ishi"   class="giant-char cutin-ishi"   src="sp_ishi.png"   alt="巨大石ちゃん">
+    <img id="giant-wakaba" class="giant-char cutin-wakaba" src="sp_wakaba.png" alt="巨大若葉ちゃん">
+    <img id="flash-char"   src="sp_kinoko.png" alt="連続点滅">
+    <div id="collabo-title">COLLABORATION SWITCH!!</div>
+  </div>
+
+  <canvas id="confetti"></canvas>
+  <div id="curtain"></div>
+  <div id="result-banner"></div>
+
+  <div id="tap-to-start" onclick="initStart()">
+    <span>画面をタップして観測開始</span>
+  </div>
+</div>
+
+<audio id="audio" src="theme.mp3" preload="auto"></audio>
+
+<script>
+  const stage = document.getElementById('stage');
+  const curtain = document.getElementById('curtain');
+  const resultBanner = document.getElementById('result-banner');
+  const audio = document.getElementById('audio');
+  const kinoko = document.getElementById('kinoko');
+  const smoke = document.getElementById('smoke');
+  const ishi = document.getElementById('ishi');
+  const wakaba = document.getElementById('wakaba');
+  const canvas = document.getElementById('confetti');
+  const ctx = canvas.getContext('2d');
+  const tapOverlay = document.getElementById('tap-to-start');
+
+  const banner = document.getElementById('cutin-bg-banner');
+  const gKinoko = document.getElementById('giant-kinoko');
+  const gIshi = document.getElementById('giant-ishi');
+  const gWakaba = document.getElementById('giant-wakaba');
+  const flashChar = document.getElementById('flash-char');
+  const collaboTitle = document.getElementById('collabo-title');
+
+  let isPlaying = false;
+  let confettiActive = false;
+  let particles = [];
+
+  function resizeCanvas() {
+    canvas.width = stage.clientWidth;
+    canvas.height = stage.clientHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  function playSlashSE(pitch = 1000) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(pitch, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.35);
+    gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.35);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.35);
+  }
+
+  function playFlashSE() {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(1600, audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+    gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    osc.start();
+    osc.stop(audioCtx.currentTime + 0.15);
+  }
+
+  function returnToNormal() {
+    curtain.classList.add('fade-out');
+    setTimeout(() => {
+      if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        window.location.href = '../index.html';
+      }
+    }, 1500);
+  }
+
+  function initStart() {
+    if (isPlaying) return;
+    tapOverlay.style.display = 'none';
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    startCollaboSwitch();
+  }
+
+  // コラボスイッチ（約10秒の連続ドラマ）
+  function startCollaboSwitch() {
+    isPlaying = true;
+
+    // 0.8秒後：毒キノコちゃん（左➔右）
+    setTimeout(() => {
+      playSlashSE(800);
+      banner.className = 'cutin-banner banner-red';
+      banner.style.transform = 'rotate(-6deg) scaleY(1)';
+      gKinoko.classList.add('run');
+    }, 800);
+
+    // 2.8秒後：石ちゃん（右➔左）＆地響き
+    setTimeout(() => {
+      playSlashSE(500);
+      stage.classList.add('shake');
+      setTimeout(() => stage.classList.remove('shake'), 700);
+      banner.className = 'cutin-banner banner-blue';
+      gIshi.classList.add('run');
+    }, 2800);
+
+    // 4.8秒後：若葉ちゃん（上➔下）
+    setTimeout(() => {
+      playSlashSE(1200);
+      banner.className = 'cutin-banner banner-green';
+      gWakaba.classList.add('run');
+    }, 4800);
+
+    // 6.8秒後：パッ！パッ！パッ！点滅 ➔ COLLABORATION SWITCH!!
+    setTimeout(() => {
+      banner.style.transform = 'rotate(-6deg) scaleY(0)';
+      
+      flashChar.src = 'sp_kinoko.png';
+      flashChar.classList.add('show');
+      playFlashSE();
+
+      setTimeout(() => {
+        flashChar.src = 'sp_ishi.png';
+        playFlashSE();
+      }, 350);
+
+      setTimeout(() => {
+        flashChar.src = 'sp_wakaba.png';
+        playFlashSE();
+      }, 700);
+
+      setTimeout(() => {
+        flashChar.classList.remove('show');
+        collaboTitle.classList.add('show');
+        playSlashSE(1800);
+      }, 1050);
+    }, 6800);
+
+    // 9.8秒後：暗転タメ ➔ 当落判定へ！
+    setTimeout(() => {
+      collaboTitle.classList.remove('show');
+      judgeResult();
+    }, 9800);
+  }
+
+  function judgeResult() {
+    curtain.classList.add('blackout');
+
+    setTimeout(() => {
+      const isWin = (Math.random() < 0.25);
+
+      if (isWin) {
+        resultBanner.innerHTML = '🎉 大 当 た り 🎉<br><span style="font-size: 0.7em; color: #ffd700;">奇跡の共鳴を観測！</span>';
+        resultBanner.classList.add('show');
+        audio.play();
+
+        setTimeout(() => {
+          resultBanner.classList.remove('show');
+          curtain.classList.remove('blackout');
+          startSpecialLivePerformance();
+        }, 1800);
+
+      } else {
+        resultBanner.innerHTML = '【 観 測 終 了 】<br><span style="font-size: 0.85em; color: #90a4ae;">……異常なし（通常へ）</span>';
+        resultBanner.classList.add('show');
+
+        setTimeout(() => {
+          returnToNormal();
+        }, 2200);
+      }
+    }, 1200);
+  }
+
+  function startSpecialLivePerformance() {
+    stage.classList.add('sp-playing');
+    kinoko.classList.add('show', 'dance-kinoko');
+  }
+
+  audio.addEventListener('timeupdate', () => {
+    const sec = audio.currentTime;
+    if (sec >= 17.0 && !smoke.classList.contains('active')) smoke.classList.add('active');
+    if (sec >= 19.5 && !smoke.classList.contains('fade')) smoke.classList.add('fade');
+    if (sec >= 21.0 && !ishi.classList.contains('active')) ishi.classList.add('active');
+    if (sec >= 25.0 && !wakaba.classList.contains('active')) wakaba.classList.add('active');
+    if (sec >= 28.0 && !confettiActive) {
+      confettiActive = true;
+      kinoko.classList.add('jump');
+      initConfetti();
+    }
+    if (sec >= 44.0 && !curtain.classList.contains('fade-out')) {
+      curtain.classList.add('fade-out');
+    }
+  });
+
+  audio.addEventListener('ended', () => {
+    setTimeout(() => {
+      returnToNormal();
+    }, 1500);
+  });
+
+  function initConfetti() {
+    particles = [];
+    const colors = ['#ff8a80', '#ffd180', '#ffff8d', '#ccff90', '#a7ffeb', '#80d8ff', '#ea80fc'];
+    for (let i = 0; i < 60; i++) {
+      particles.push({
+        x: Math.random() * canvas.width,
+        y: -10,
+        r: Math.random() * 6 + 4,
+        d: Math.random() * 2 + 1,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        tilt: Math.floor(Math.random() * 10) - 10,
+        tiltAngle: 0,
+        tiltAngleIncremental: (Math.random() * 0.07) + 0.05
+      });
+    }
+    requestAnimationFrame(renderConfetti);
+  }
+
+  function renderConfetti() {
+    if (!confettiActive) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = 0; i < particles.length; i++) {
+      const p = particles[i];
+      p.tiltAngle += p.tiltAngleIncremental;
+      p.y += (Math.cos(p.d) + 3 + p.r / 2) / 2;
+      p.tilt = Math.sin(p.tiltAngle - (i / 3)) * 15;
+      ctx.beginPath();
+      ctx.lineWidth = p.r;
+      ctx.strokeStyle = p.color;
+      ctx.moveTo(p.x + p.tilt + (p.r / 2), p.y);
+      ctx.lineTo(p.x + p.tilt, p.y + p.tilt + (p.r / 2));
+      ctx.stroke();
+      if (p.y > canvas.height) {
+        particles[i].x = Math.random() * canvas.width;
+        particles[i].y = -10;
+      }
+    }
+    requestAnimationFrame(renderConfetti);
+  }
+</script>
+</body>
+</html>
