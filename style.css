@@ -1,0 +1,220 @@
+@charset "UTF-8";
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+body {
+  background: #000;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Meiryo", sans-serif;
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  height: 100%;
+}
+
+/* --------------------------------------
+   MindAR カメラ画面
+-------------------------------------- */
+#ar-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+}
+
+/* --------------------------------------
+   研究所 UI オーバーレイ（最前面）
+-------------------------------------- */
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 100;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 16px;
+}
+
+/* 上部ステータスバー */
+.header-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+
+/* カメラ番号バッジ */
+.camera-badge-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.camera-badge {
+  background: rgba(30, 45, 30, 0.85);
+  border: 1px solid #7cb342;
+  color: #c5e1a5;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+}
+.badge-dot {
+  width: 8px;
+  height: 8px;
+  background: #7cb342;
+  border-radius: 50%;
+  animation: pulse-dot 1.5s infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* 手動チャンネル切り替えボタン */
+.channel-btn {
+  background: rgba(0, 0, 0, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  padding: 5px 12px;
+  border-radius: 15px;
+  font-size: 12px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* オートチューナー（探索ゲージ） */
+.tuner-box {
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 12px;
+  padding: 8px 12px;
+  backdrop-filter: blur(4px);
+}
+.tuner-label {
+  color: #e0e0e0;
+  font-size: 11px;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 5px;
+}
+.tuner-bar-track {
+  width: 100%;
+  height: 5px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.tuner-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #7cb342, #81c784);
+  border-radius: 3px;
+  transition: width 0.1s linear;
+}
+
+/* --------------------------------------
+   中央スキャンガイド枠
+-------------------------------------- */
+.scan-guide {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 260px;
+  height: 260px;
+  border: 2px dashed rgba(255, 255, 255, 0.4);
+  border-radius: 20px;
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: border-color 0.3s;
+}
+.scan-guide.found {
+  border-color: #81c784;
+  border-style: solid;
+  animation: guide-success 0.5s ease-out;
+}
+@keyframes guide-success {
+  0% { transform: translate(-50%, -50%) scale(1); }
+  50% { transform: translate(-50%, -50%) scale(1.08); }
+  100% { transform: translate(-50%, -50%) scale(1); }
+}
+
+/* --------------------------------------
+   観測成功ログトースト
+-------------------------------------- */
+#discovery-toast {
+  position: absolute;
+  bottom: 90px;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(30, 50, 30, 0.95);
+  border: 1px solid #81c784;
+  color: #e8f5e9;
+  padding: 10px 20px;
+  border-radius: 25px;
+  font-size: 13px;
+  font-weight: bold;
+  letter-spacing: 0.5px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+  white-space: nowrap;
+  z-index: 120;
+}
+#discovery-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* --------------------------------------
+   下部メッセージガイド
+-------------------------------------- */
+.footer-guide {
+  text-align: center;
+  color: #fff;
+  font-size: 13px;
+  background: rgba(0, 0, 0, 0.6);
+  padding: 8px 16px;
+  border-radius: 20px;
+  align-self: center;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* 画面遷移時の暗転フェード */
+#fade-curtain {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  z-index: 999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+#fade-curtain.active {
+  opacity: 1;
+  pointer-events: auto;
+}
