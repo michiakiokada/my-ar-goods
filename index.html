@@ -26,7 +26,7 @@
     .bottom-left  { bottom: 20px; left: 20px; border-right: none; border-top: none; border-radius: 0 0 0 8px; }
     .bottom-right { bottom: 20px; right: 20px; border-left: none; border-top: none; border-radius: 0 0 8px 0; }
 
-    /* 上部ステータスヘッダー（ロゴ画像を直接表示） */
+    /* 上部ステータスヘッダー */
     .lab-header {
       position: fixed; top: 18px; left: 50%; transform: translateX(-50%);
       background: rgba(28, 42, 25, 0.85); backdrop-filter: blur(6px);
@@ -55,13 +55,12 @@
 
     #dialog-panel {
       background: rgba(255, 255, 255, 0.96); border: 3px solid #ff7b90;
-      padding: 12px 18px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+      padding: 14px 20px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
       width: 100%; text-align: center; transition: opacity 0.4s ease, transform 0.4s ease;
     }
     #dialog-panel.panel-hidden { opacity: 0; transform: scale(0.94); }
 
-    #speech-text { color: #3e2714; font-size: 15px; font-weight: bold; line-height: 1.45; white-space: pre-wrap; }
-    #observation-log { margin-top: 6px; font-size: 11px; color: #7b8a70; border-top: 1px dashed #e0d0c0; padding-top: 5px; }
+    #speech-text { color: #3e2714; font-size: 15px; font-weight: bold; line-height: 1.5; white-space: pre-wrap; }
 
     /* 操作ボタングループ */
     .button-group {
@@ -140,7 +139,7 @@
     .btn-x     { background: #000000; color: white; }
     .btn-close { background: #dfe6e9; color: #2d3436; }
 
-    /* ★スーパーリーチ遷移用 暗転フェード幕 */
+    /* スーパーリーチ遷移用 暗転フェード幕 */
     #reach-curtain {
       position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
       background: #000000; opacity: 0; pointer-events: none; z-index: 9999;
@@ -162,7 +161,7 @@
     <div class="corner bottom-left"></div><div class="corner bottom-right"></div>
   </div>
 
-  <!-- 上部ステータスヘッダー（HTMLと同じ場所の ./site-logo.png を直接読み込み） -->
+  <!-- 上部ステータスヘッダー -->
   <div class="lab-header">
     <img id="headerLogoImg" class="header-logo-img" src="./site-logo.png" alt="小さな森の研究所">
     <div class="status-group">
@@ -174,7 +173,6 @@
   <div id="ui-container">
     <div id="dialog-panel">
       <div id="speech-text">小さな森のともだちを探してね…🌱</div>
-      <div id="observation-log">【観測待機】グッズやカードにレンズをかざしてください</div>
     </div>
     <div class="button-group">
       <button id="capture-btn" type="button">📷 観測記録を撮る</button>
@@ -230,7 +228,7 @@
 
   <script>
     // ========================================================
-    // ★【自由設定エリア】カード番号（0〜8）全9枚のキャラクター割り当て
+    // ★ カード番号（0〜8）全9枚のキャラクター割り当て
     // ========================================================
     const TARGET_MAPPING = {
       0: "kinoko_talk",  // 毒キノコちゃん
@@ -251,10 +249,10 @@
     // ========================================================
     const SUPER_REACH_PROBABILITY = 1 / 20;
     const REACH_PAGES = [
-      './sp/reach1.html', // ◯群
-      './sp/reach2.html', // コラボスイッチ
-      './sp/reach3.html', // 停電フリーズ
-      './sp/reach4.html'  // 顕微鏡ズーム
+      './sp/reach1.html',
+      './sp/reach2.html',
+      './sp/reach3.html',
+      './sp/reach4.html'
     ];
     let isTransitioningToReach = false;
     const reachCurtain = document.getElementById('reach-curtain');
@@ -262,13 +260,11 @@
     function checkAndTriggerSuperReach() {
       if (isTransitioningToReach) return;
 
-      // 1/20 の確率判定
       const hit = Math.random() < SUPER_REACH_PROBABILITY;
       if (hit) {
         isTransitioningToReach = true;
         const targetPage = REACH_PAGES[Math.floor(Math.random() * REACH_PAGES.length)];
 
-        // 画面を暗転させてスーパーリーチへジャンプ！
         reachCurtain.classList.add('active');
         setTimeout(() => {
           window.location.href = targetPage;
@@ -323,7 +319,6 @@
     // DOM要素
     const dialogPanel = document.getElementById('dialog-panel');
     const speechText = document.getElementById('speech-text');
-    const observationLog = document.getElementById('observation-log');
     const statusDot = document.getElementById('statusDot');
     const statusText = document.getElementById('statusText');
     const headerLogoImg = document.getElementById('headerLogoImg');
@@ -335,20 +330,23 @@
       if (p) p.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
     }
 
-    // === ① CSV読み込み ===
+    // === ① CSV読み込み（4列フォーマット：条件,画像ファイル,動き,セリフ） ===
     async function fetchCSV(path) {
       try {
         const res = await fetch(path);
         if (!res.ok) return [];
         const text = await res.text();
         const rows = text.trim().split('\n').map(r => r.split(','));
-        return rows.slice(1).map(cols => ({
-          condition: cols[0]?.trim(),
-          image: cols[1]?.trim(),
-          action: cols[2]?.trim(),
-          speech: cols[3]?.trim(),
-          log: cols[4]?.trim()
-        })).filter(item => item.speech);
+        return rows.slice(1).map(cols => {
+          // セリフ部分にカンマが含まれる場合も想定して結合
+          const speechPart = cols.slice(3).join(',').trim();
+          return {
+            condition: cols[0]?.trim(),
+            image: cols[1]?.trim(),
+            action: cols[2]?.trim(),
+            speech: speechPart.replace(/^"|"$/g, '').trim()
+          };
+        }).filter(item => item.speech);
       } catch (e) {
         return [];
       }
@@ -361,32 +359,76 @@
       collaboScenarios = await fetchCSV(COLLABO_CSV);
     }
 
-    // === ② 時間・環境判定 ===
-    function getActiveConditions() {
+    // ========================================================
+    // ★ 3人の特別テーマ判定ロジック
+    // ========================================================
+
+    // 🌙 毒キノコちゃん用：月齢計算
+    function getMoonPhaseName() {
+      const date = new Date();
+      const year = date.getFullYear();
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      
+      let c = year % 19;
+      let epact = (11 * c + 18) % 30;
+      if (month === 1 || month === 2) epact += 2;
+      let moonAge = (epact + month + day) % 30;
+
+      if (moonAge >= 29 || moonAge <= 1) return '新月';
+      if (moonAge >= 2 && moonAge <= 5)   return '三日月';
+      if (moonAge >= 6 && moonAge <= 9)   return '上弦';
+      if (moonAge >= 14 && moonAge <= 16) return '満月';
+      if (moonAge >= 21 && moonAge <= 23) return '下弦';
+      return '星空';
+    }
+
+    // 🪨 石ちゃん用：今日の日付キー (MM-DD)
+    function getTodayDateKey() {
+      const now = new Date();
+      const m = String(now.getMonth() + 1).padStart(2, '0');
+      const d = String(now.getDate()).padStart(2, '0');
+      return `${m}-${d}`;
+    }
+
+    // 🌱 若葉ちゃん用：季節
+    function getSeasonKey() {
+      const m = new Date().getMonth() + 1;
+      if (m >= 3 && m <= 5) return '春';
+      if (m >= 6 && m <= 8) return '夏';
+      if (m >= 9 && m <= 11) return '秋';
+      return '冬';
+    }
+
+    // === ② 時間・環境判定（深夜 23:00〜4:59 の追加 & キャラ個別条件） ===
+    function getActiveConditions(charaKey) {
       const now = new Date();
       const hour = now.getHours();
-      const month = now.getMonth() + 1;
-      const date = now.getDate();
       const conditions = ['ALL'];
 
+      // 時間帯判定
       if (hour >= 5 && hour < 11) conditions.push('朝');
       else if (hour >= 11 && hour < 17) conditions.push('昼');
-      else conditions.push('夜');
+      else if (hour >= 17 && hour < 23) conditions.push('夜');
+      else conditions.push('深夜');
 
-      if (month === 12 || month <= 2) conditions.push('寒');
-      if (month >= 7 && month <= 8) conditions.push('暑');
-
-      if (month === 12 && date >= 18 && date <= 24) conditions.push('XMAS_PRE');
-      if (month === 12 && date === 25) conditions.push('XMAS');
+      // キャラごとの個別条件
+      if (charaKey === 'ishi') {
+        conditions.push(getTodayDateKey()); // 記念日 (MM-DD)
+      } else if (charaKey === 'kinoko') {
+        conditions.push(getMoonPhaseName()); // 月齢・星空
+      } else if (charaKey === 'wakaba') {
+        conditions.push(getSeasonKey());     // 季節
+        conditions.push('自然');             // 自然トリビア
+      }
 
       return conditions;
     }
 
-    function updatePanel(speech, log) {
+    function updatePanel(speech) {
       dialogPanel.classList.add('panel-hidden');
       setTimeout(() => {
         speechText.innerText = speech;
-        observationLog.innerText = log;
         dialogPanel.classList.remove('panel-hidden');
       }, 400);
     }
@@ -397,9 +439,7 @@
       if (!anchorEl) continue;
 
       anchorEl.addEventListener("targetFound", () => {
-        // ★グッズが認識された瞬間に 1/20 のスーパーリーチ抽選！
         checkAndTriggerSuperReach();
-
         visibleTargetIds.add(i);
         syncDisplayedCharacters();
       });
@@ -448,7 +488,7 @@
         statusText.innerText = `${names}を観測中！`;
       } else {
         statusText.innerText = "スキャン中";
-        updatePanel("小さな森のともだちを探してね…🌱", "【観測待機】グッズやカードにレンズをかざしてください");
+        updatePanel("小さな森のともだちを探してね…🌱");
       }
     }
 
@@ -461,13 +501,14 @@
         return;
       }
 
-      const activeConditions = getActiveConditions();
-
+      // 3人揃っている場合はコラボシナリオ
       if (activeCharas.length === 3 && collaboScenarios.length > 0) {
+        const activeConditions = getActiveConditions();
         const available = collaboScenarios.filter(item => activeConditions.includes(item.condition));
         const chosen = (available.length > 0 ? available : collaboScenarios)[Math.floor(Math.random() * (available.length || collaboScenarios.length))];
-        updatePanel(chosen.speech, `【3人なかよしログ】${chosen.log}`);
+        updatePanel(chosen.speech);
       } else {
+        // 通常の単体シナリオ抽選
         const chosenActive = activeCharas[Math.floor(Math.random() * activeCharas.length)];
         const chara = chosenActive.data;
         const state = chara.state;
@@ -476,6 +517,8 @@
         const list = chara.scenarios.length > 0 ? chara.scenarios : CHARA_MASTER.kinoko.scenarios;
 
         if (list.length > 0) {
+          // キャラクターに応じた条件を取得
+          const activeConditions = getActiveConditions(chosenActive.charaKey);
           const available = list.filter(item => activeConditions.includes(item.condition));
           const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
 
@@ -495,7 +538,7 @@
             state.targetY = state.currentY;
           }
 
-          updatePanel(chosen.speech, `【生態ログ】${chosen.log}`);
+          updatePanel(chosen.speech);
         }
       }
 
@@ -628,7 +671,7 @@
       const ctx = outputCanvas.getContext('2d');
       ctx.scale(dpr, dpr);
 
-      // カメラ背景描画
+      // 1. カメラ背景描画
       const vRect = video.getBoundingClientRect();
       if (vRect && vRect.width > 0 && vRect.height > 0) {
         ctx.drawImage(video, vRect.left, vRect.top, vRect.width, vRect.height);
@@ -648,14 +691,14 @@
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, screenW, screenH);
       }
 
-      // ARキャラ描画
+      // 2. ARキャラ描画
       if (arCanvas) {
         ctx.drawImage(arCanvas, 0, 0, screenW, screenH);
       } else if (sceneEl.canvas) {
         ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
       }
 
-      // サイトロゴ（./site-logo.png）を合成
+      // 3. サイトロゴ（./site-logo.png）を合成
       if (headerLogoImg && headerLogoImg.naturalWidth > 0) {
         ctx.save();
         const logoTargetW = Math.min(screenW * 0.42, 150);
@@ -672,19 +715,18 @@
         ctx.restore();
       }
 
-      // セリフ枠＆生態ログ合成
+      // 4. セリフ枠の合成（生態ログなしのスッキリ表示）
       const speech = speechText ? speechText.innerText : '';
-      const log = observationLog ? observationLog.innerText : '';
 
-      if (speech || log) {
+      if (speech) {
         ctx.save();
         const pWidth = Math.min(screenW * 0.90, 420);
         const pX = (screenW - pWidth) / 2;
-        const paddingX = 18;
+        const paddingX = 20;
         const maxContentW = pWidth - paddingX * 2;
 
         ctx.font = "bold 15px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
-        const speechLineHeight = 22;
+        const speechLineHeight = 23;
         const speechLines = [];
         speech.split('\n').forEach(para => {
           let line = '';
@@ -699,28 +741,9 @@
           if (line) speechLines.push(line);
         });
 
-        ctx.font = "11px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
-        const logLineHeight = 16;
-        const logLines = [];
-        if (log) {
-          log.split('\n').forEach(para => {
-            let line = '';
-            for (let char of para) {
-              if (ctx.measureText(line + char).width > maxContentW) {
-                logLines.push(line);
-                line = char;
-              } else {
-                line += char;
-              }
-            }
-            if (line) logLines.push(line);
-          });
-        }
-
         const speechTotalH = speechLines.length * speechLineHeight;
-        const logTotalH = log ? (logLines.length * logLineHeight + 12) : 0;
-        const pHeight = 14 + speechTotalH + logTotalH + 14;
-        const pY = screenH - pHeight - 38;
+        const pHeight = 16 + speechTotalH + 16;
+        const pY = screenH - pHeight - 40;
 
         ctx.shadowColor = 'rgba(0, 0, 0, 0.28)';
         ctx.shadowBlur = 16;
@@ -739,35 +762,13 @@
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
-        let textY = pY + 14;
+        let textY = pY + 16;
         speechLines.forEach(line => {
           ctx.fillText(line, pX + pWidth / 2, textY);
           textY += speechLineHeight;
         });
 
-        if (log) {
-          textY += 4;
-          ctx.save();
-          ctx.strokeStyle = '#e0d0c0';
-          ctx.lineWidth = 1;
-          ctx.setLineDash([4, 4]);
-          ctx.beginPath();
-          ctx.moveTo(pX + paddingX, textY);
-          ctx.lineTo(pX + pWidth - paddingX, textY);
-          ctx.stroke();
-          ctx.restore();
-
-          textY += 7;
-          ctx.font = "11px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
-          ctx.fillStyle = '#7b8a70';
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'top';
-          logLines.forEach(line => {
-            ctx.fillText(line, pX + pWidth / 2, textY);
-            textY += logLineHeight;
-          });
-        }
-
+        // コピーライト表示
         ctx.font = "bold 10px 'Hiragino Maru Gothic ProN', sans-serif";
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
@@ -779,7 +780,7 @@
         ctx.restore();
       }
 
-      // SNSテキスト生成
+      // 5. SNSテキスト生成
       const activeCharas = getActiveCharacters();
       let charaName = '小さな森のともだち';
       if (activeCharas.length === 3) {
@@ -789,7 +790,7 @@
       }
 
       const cleanSpeech = speech ? speech.replace(/\n+/g, ' ') : '';
-      currentSnsText = `小さな森の研究所で「${charaName}」を観測したよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chiisanamori.shop`;
+      currentSnsText = `小さな森の研究所で「${charaName}」に会ったよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chiisanamori.shop`;
 
       try {
         capturedDataUrl = outputCanvas.toDataURL('image/png');
