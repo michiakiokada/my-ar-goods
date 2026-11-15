@@ -44,7 +44,6 @@
     }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffcc00; }
     .status-dot.active { background: #55efc4; box-shadow: 0 0 8px #55efc4; }
-    .status-dot.collabo { background: #ff7675; box-shadow: 0 0 10px #ff7675; }
 
     /* 下部UI */
     #ui-container {
@@ -206,7 +205,7 @@
     </div>
   </div>
 
-  <!-- maxTrack: 4 (同時に認識できる最大枚数) -->
+  <!-- maxTrack: 4 -->
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 4; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
     color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
@@ -299,9 +298,6 @@
       }
     };
 
-    const COLLABO_CSV = './collabo_talk.csv';
-    let collaboScenarios = [];
-
     const CONFIG = {
       areaRangeX: 1.5,
       areaRangeY: 1.3,
@@ -330,7 +326,7 @@
       if (p) p.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
     }
 
-    // === ① CSV読み込み（4列フォーマット：条件,画像ファイル,動き,セリフ） ===
+    // === ① CSV読み込み（4列：条件,画像ファイル,動き,セリフ） ===
     async function fetchCSV(path) {
       try {
         const res = await fetch(path);
@@ -338,7 +334,6 @@
         const text = await res.text();
         const rows = text.trim().split('\n').map(r => r.split(','));
         return rows.slice(1).map(cols => {
-          // セリフ部分にカンマが含まれる場合も想定して結合
           const speechPart = cols.slice(3).join(',').trim();
           return {
             condition: cols[0]?.trim(),
@@ -356,7 +351,6 @@
       for (const key of Object.keys(CHARA_MASTER)) {
         CHARA_MASTER[key].scenarios = await fetchCSV(CHARA_MASTER[key].csv);
       }
-      collaboScenarios = await fetchCSV(COLLABO_CSV);
     }
 
     // ========================================================
@@ -410,7 +404,7 @@
       if (hour >= 5 && hour < 11) conditions.push('朝');
       else if (hour >= 11 && hour < 17) conditions.push('昼');
       else if (hour >= 17 && hour < 23) conditions.push('夜');
-      else conditions.push('深夜');
+      else conditions.push('深夜'); // 23:00 〜 4:59
 
       // キャラごとの個別条件
       if (charaKey === 'ishi') {
@@ -477,12 +471,9 @@
         }
       }
 
-      statusDot.classList.remove('active', 'collabo');
+      statusDot.classList.remove('active');
 
-      if (activeCharas.length === 3) {
-        statusDot.classList.add('collabo');
-        statusText.innerText = "3人あつまったよ！🎉";
-      } else if (activeCharas.length > 0) {
+      if (activeCharas.length > 0) {
         statusDot.classList.add('active');
         const names = activeCharas.map(a => a.data.name).join('と');
         statusText.innerText = `${names}を観測中！`;
@@ -501,45 +492,37 @@
         return;
       }
 
-      // 3人揃っている場合はコラボシナリオ
-      if (activeCharas.length === 3 && collaboScenarios.length > 0) {
-        const activeConditions = getActiveConditions();
-        const available = collaboScenarios.filter(item => activeConditions.includes(item.condition));
-        const chosen = (available.length > 0 ? available : collaboScenarios)[Math.floor(Math.random() * (available.length || collaboScenarios.length))];
-        updatePanel(chosen.speech);
-      } else {
-        // 通常の単体シナリオ抽選
-        const chosenActive = activeCharas[Math.floor(Math.random() * activeCharas.length)];
-        const chara = chosenActive.data;
-        const state = chara.state;
-        const plane = document.getElementById(`plane-${chosenActive.targetId}`);
+      // 単体キャラクターのシナリオ抽選
+      const chosenActive = activeCharas[Math.floor(Math.random() * activeCharas.length)];
+      const chara = chosenActive.data;
+      const state = chara.state;
+      const plane = document.getElementById(`plane-${chosenActive.targetId}`);
 
-        const list = chara.scenarios.length > 0 ? chara.scenarios : CHARA_MASTER.kinoko.scenarios;
+      const list = chara.scenarios.length > 0 ? chara.scenarios : CHARA_MASTER.kinoko.scenarios;
 
-        if (list.length > 0) {
-          // キャラクターに応じた条件を取得
-          const activeConditions = getActiveConditions(chosenActive.charaKey);
-          const available = list.filter(item => activeConditions.includes(item.condition));
-          const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
+      if (list.length > 0) {
+        // キャラクターに応じた条件を取得
+        const activeConditions = getActiveConditions(chosenActive.charaKey);
+        const available = list.filter(item => activeConditions.includes(item.condition));
+        const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
 
-          state.action = chosen.action;
-          chara.currentImg = chosen.image;
+        state.action = chosen.action;
+        chara.currentImg = chosen.image;
 
-          if (plane && chosen.image) plane.setAttribute('src', chosen.image);
+        if (plane && chosen.image) plane.setAttribute('src', chosen.image);
 
-          if (state.action === 'explore') {
-            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-            state.targetY = 0.2 + Math.random() * 0.4;
-          } else if (state.action === 'walk') {
-            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-            state.targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
-          } else {
-            state.targetX = state.currentX;
-            state.targetY = state.currentY;
-          }
-
-          updatePanel(chosen.speech);
+        if (state.action === 'explore') {
+          state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+          state.targetY = 0.2 + Math.random() * 0.4;
+        } else if (state.action === 'walk') {
+          state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+          state.targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
+        } else {
+          state.targetX = state.currentX;
+          state.targetY = state.currentY;
         }
+
+        updatePanel(chosen.speech);
       }
 
       const delay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
@@ -715,7 +698,7 @@
         ctx.restore();
       }
 
-      // 4. セリフ枠の合成（生態ログなしのスッキリ表示）
+      // 4. セリフ枠の合成
       const speech = speechText ? speechText.innerText : '';
 
       if (speech) {
@@ -783,9 +766,7 @@
       // 5. SNSテキスト生成
       const activeCharas = getActiveCharacters();
       let charaName = '小さな森のともだち';
-      if (activeCharas.length === 3) {
-        charaName = '3人なかよしのみんな';
-      } else if (activeCharas.length > 0) {
+      if (activeCharas.length > 0) {
         charaName = activeCharas.map(a => a.data.name).join('と');
       }
 
