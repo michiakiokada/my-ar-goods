@@ -346,7 +346,7 @@
     // ショップリンク
     for (let i = 0; i < TOTAL_TARGETS; i++) {
       const p = document.getElementById(`plane-${i}`);
-      if (p) p.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
+      if (p) p.addEventListener('click', () => window.open('https://chii-mori.com', '_blank'));
     }
 
     // === ① CSV読み込み ===
@@ -792,7 +792,7 @@
         ctx.shadowBlur = 4;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('#小さな森の研究所   chiisanamori.shop', screenW / 2, pY + pHeight + 8);
+        ctx.fillText('#小さな森の研究所   chii-mori.com', screenW / 2, pY + pHeight + 8);
         ctx.restore();
       }
 
@@ -804,7 +804,7 @@
       }
 
       const cleanSpeech = speech ? speech.replace(/\n+/g, ' ') : '';
-      currentSnsText = `小さな森の研究所で「${charaName}」に会ったよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chiisanamori.shop`;
+      currentSnsText = `小さな森の研究所で「${charaName}」に会ったよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chii-mori.com`;
 
       try {
         capturedDataUrl = outputCanvas.toDataURL('image/png');
