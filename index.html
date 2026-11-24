@@ -44,6 +44,7 @@
     }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #ffcc00; }
     .status-dot.active { background: #55efc4; box-shadow: 0 0 8px #55efc4; }
+    .status-dot.collabo { background: #ff7675; box-shadow: 0 0 10px #ff7675; }
 
     /* 下部UI */
     #ui-container {
@@ -55,20 +56,11 @@
     #dialog-panel {
       background: rgba(255, 255, 255, 0.96); border: 3px solid #ff7b90;
       padding: 14px 20px; border-radius: 20px; box-shadow: 0 8px 24px rgba(0,0,0,0.2);
-      width: 100%; transition: opacity 0.4s ease, transform 0.4s ease;
+      width: 100%; text-align: center; transition: opacity 0.4s ease, transform 0.4s ease;
     }
     #dialog-panel.panel-hidden { opacity: 0; transform: scale(0.94); }
 
-    /* ★ セリフテキストを左揃えに変更 */
-    #speech-text {
-      color: #3e2714;
-      font-size: 15px;
-      font-weight: bold;
-      line-height: 1.55;
-      white-space: pre-wrap;
-      text-align: left;
-      word-break: break-word;
-    }
+    #speech-text { color: #3e2714; font-size: 15px; font-weight: bold; line-height: 1.5; white-space: pre-wrap; }
 
     /* 操作ボタングループ */
     .button-group {
@@ -214,7 +206,7 @@
     </div>
   </div>
 
-  <!-- maxTrack: 4 -->
+  <!-- maxTrack: 4 (同時に認識できる最大枚数) -->
   <a-scene 
     mindar-image="imageTargetSrc: ./targets.mind; maxTrack: 4; autoStart: true; uiLoading: yes; uiScanning: yes; filterMinCF: 0.0001; filterBeta: 0.001;" 
     color-space="sRGB" renderer="colorManagement: true, physicallyCorrectLights" 
@@ -222,7 +214,7 @@
     
     <a-camera position="0 0 0" look-controls="enabled: false" cursor="fuse: false; rayOrigin: mouse;" raycaster="far: 10000; objects: .clickable"></a-camera>
 
-    <!-- 0〜13番のターゲットアンカー -->
+    <!-- 0〜12番のターゲットアンカー -->
     <a-entity id="anchor-0" mindar-image-target="targetIndex: 0"><a-entity id="root-0" position="0 0 0.05"><a-plane id="plane-0" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
     <a-entity id="anchor-1" mindar-image-target="targetIndex: 1"><a-entity id="root-1" position="0 0 0.05"><a-plane id="plane-1" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
     <a-entity id="anchor-2" mindar-image-target="targetIndex: 2"><a-entity id="root-2" position="0 0 0.05"><a-plane id="plane-2" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
@@ -232,35 +224,32 @@
     <a-entity id="anchor-6" mindar-image-target="targetIndex: 6"><a-entity id="root-6" position="0 0 0.05"><a-plane id="plane-6" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
     <a-entity id="anchor-7" mindar-image-target="targetIndex: 7"><a-entity id="root-7" position="0 0 0.05"><a-plane id="plane-7" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
     <a-entity id="anchor-8" mindar-image-target="targetIndex: 8"><a-entity id="root-8" position="0 0 0.05"><a-plane id="plane-8" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-9" mindar-image-target="targetIndex: 9"><a-entity id="root-9" position="0 0 0.05"><a-plane id="plane-9" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-10" mindar-image-target="targetIndex: 10"><a-entity id="root-10" position="0 0 0.05"><a-plane id="plane-10" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-11" mindar-image-target="targetIndex: 11"><a-entity id="root-11" position="0 0 0.05"><a-plane id="plane-11" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-12" mindar-image-target="targetIndex: 12"><a-entity id="root-12" position="0 0 0.05"><a-plane id="plane-12" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
-    <a-entity id="anchor-13" mindar-image-target="targetIndex: 13"><a-entity id="root-13" position="0 0 0.05"><a-plane id="plane-13" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-9" mindar-image-target="targetIndex: 0"><a-entity id="root-0" position="0 0 0.05"><a-plane id="plane-0" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-10" mindar-image-target="targetIndex: 1"><a-entity id="root-1" position="0 0 0.05"><a-plane id="plane-1" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-11" mindar-image-target="targetIndex: 2"><a-entity id="root-2" position="0 0 0.05"><a-plane id="plane-2" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
+    <a-entity id="anchor-12" mindar-image-target="targetIndex: 2"><a-entity id="root-2" position="0 0 0.05"><a-plane id="plane-2" class="clickable" width="0.40" height="0.40" transparent="true" alpha-test="0.5" visible="false"></a-plane></a-entity></a-entity>
   </a-scene>
 
   <script>
     // ========================================================
-    // ★ カード番号（0〜13）全14枚のキャラクター割り当て
+    // ★ カード番号（0〜12）全13枚のキャラクター割り当て
     // ========================================================
     const TARGET_MAPPING = {
-      0: "kinoko_talk",
-      1: "kinoko_talk",
-      2: "ishi_talk",
-      3: "wakaba_talk",
-      4: "kinoko_talk",
-      5: "kinoko_talk",
-      6: "kinoko_talk",
-      7: "ishi_talk",
-      8: "wakaba_talk",
-      9: "kinoko_talk",
-      10: "ishi_talk",
-      11: "wakaba_talk",
-      12: "wakaba_talk",
-      13: "wakaba_talk",
+      0: "kinoko_talk",  // 毒キノコちゃん
+      1: "kinoko_talk",  // 毒キノコちゃん
+      2: "kinoko_talk",  // 毒キノコちゃん
+      3: "kinoko_talk",  // 毒キノコちゃん
+      4: "kinoko_talk",  // 毒キノコちゃん
+      5: "kinoko_talk",  // 毒キノコちゃん
+      6: "ishi_talk",  // 石ちゃん
+      7: "ishi_talk",  // 石ちゃん
+      8: "ishi_talk",  // 石ちゃん
+      9: "wakaba_talk",  // 若葉ちゃん
+      10: "wakaba_talk",  // 若葉ちゃん
+      11: "wakaba_talk",  // 若葉ちゃん
+      12: "wakaba_talk",  // 若葉ちゃん
     };
 
-    const TOTAL_TARGETS = 14;
     const DEFAULT_CHARA = "kinoko_talk";
 
     // ========================================================
@@ -283,6 +272,7 @@
       if (hit) {
         isTransitioningToReach = true;
         const targetPage = REACH_PAGES[Math.floor(Math.random() * REACH_PAGES.length)];
+
         reachCurtain.classList.add('active');
         setTimeout(() => {
           window.location.href = targetPage;
@@ -297,29 +287,27 @@
       kinoko: {
         name: '毒キノコちゃん',
         csv: './kinoko_talk.csv',
-        defaultImg: 'AR_images/kinoko_front.png',
         scenarios: [],
-        currentImg: 'AR_images/kinoko_front.png',
+        currentImg: '',
         state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 0 }
       },
       ishi: {
         name: '石ちゃん',
         csv: './ishi_talk.csv',
-        defaultImg: 'AR_images/ishi_front.png',
         scenarios: [],
-        currentImg: 'AR_images/ishi_front.png',
+        currentImg: '',
         state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 1.5 }
       },
       wakaba: {
         name: '若葉ちゃん',
         csv: './wakaba_talk.csv',
-        defaultImg: 'AR_images/wakaba_front.png',
         scenarios: [],
-        currentImg: 'AR_images/wakaba_front.png',
+        currentImg: '',
         state: { currentX: 0, currentY: 0, targetX: 0, targetY: 0, facingX: 1, action: 'talk', animTimer: 3.0 }
       }
     };
 
+  
     const CONFIG = {
       areaRangeX: 1.5,
       areaRangeY: 1.3,
@@ -333,7 +321,6 @@
     }
 
     const visibleTargetIds = new Set();
-    let scenarioTimerId = null;
 
     // DOM要素
     const dialogPanel = document.getElementById('dialog-panel');
@@ -343,23 +330,21 @@
     const headerLogoImg = document.getElementById('headerLogoImg');
     let lastTime = performance.now();
 
-    // ショップリンク
-    for (let i = 0; i < TOTAL_TARGETS; i++) {
+    // 全プレーンにショップクリックを設定
+    for (let i = 0; i < 9; i++) {
       const p = document.getElementById(`plane-${i}`);
-      if (p) p.addEventListener('click', () => window.open('https://chii-mori.com', '_blank'));
+      if (p) p.addEventListener('click', () => window.open('https://chiisanamori.shop', '_blank'));
     }
 
-    // === ① CSV読み込み ===
+    // === ① CSV読み込み（4列フォーマット：条件,画像ファイル,動き,セリフ） ===
     async function fetchCSV(path) {
       try {
         const res = await fetch(path);
-        if (!res.ok) {
-          console.error(`CSV読み込み失敗: ${path} (status: ${res.status})`);
-          return [];
-        }
+        if (!res.ok) return [];
         const text = await res.text();
         const rows = text.trim().split('\n').map(r => r.split(','));
-        const list = rows.slice(1).map(cols => {
+        return rows.slice(1).map(cols => {
+          // セリフ部分にカンマが含まれる場合も想定して結合
           const speechPart = cols.slice(3).join(',').trim();
           return {
             condition: cols[0]?.trim(),
@@ -368,9 +353,7 @@
             speech: speechPart.replace(/^"|"$/g, '').trim()
           };
         }).filter(item => item.speech);
-        return list;
       } catch (e) {
-        console.error(`CSVフェッチ例外: ${path}`, e);
         return [];
       }
     }
@@ -382,13 +365,16 @@
     }
 
     // ========================================================
-    // ★ 判定ロジック
+    // ★ 3人の特別テーマ判定ロジック
     // ========================================================
+
+    // 🌙 毒キノコちゃん用：月齢計算
     function getMoonPhaseName() {
       const date = new Date();
       const year = date.getFullYear();
       const month = date.getMonth() + 1;
       const day = date.getDate();
+      
       let c = year % 19;
       let epact = (11 * c + 18) % 30;
       if (month === 1 || month === 2) epact += 2;
@@ -402,6 +388,7 @@
       return '星空';
     }
 
+    // 🪨 石ちゃん用：今日の日付キー (MM-DD)
     function getTodayDateKey() {
       const now = new Date();
       const m = String(now.getMonth() + 1).padStart(2, '0');
@@ -409,6 +396,7 @@
       return `${m}-${d}`;
     }
 
+    // 🌱 若葉ちゃん用：季節
     function getSeasonKey() {
       const m = new Date().getMonth() + 1;
       if (m >= 3 && m <= 5) return '春';
@@ -417,23 +405,26 @@
       return '冬';
     }
 
+    // === ② 時間・環境判定（深夜 23:00〜4:59 の追加 & キャラ個別条件） ===
     function getActiveConditions(charaKey) {
       const now = new Date();
       const hour = now.getHours();
       const conditions = ['ALL'];
 
+      // 時間帯判定
       if (hour >= 5 && hour < 11) conditions.push('朝');
       else if (hour >= 11 && hour < 17) conditions.push('昼');
       else if (hour >= 17 && hour < 23) conditions.push('夜');
       else conditions.push('深夜');
 
+      // キャラごとの個別条件
       if (charaKey === 'ishi') {
-        conditions.push(getTodayDateKey());
+        conditions.push(getTodayDateKey()); // 記念日 (MM-DD)
       } else if (charaKey === 'kinoko') {
-        conditions.push(getMoonPhaseName());
+        conditions.push(getMoonPhaseName()); // 月齢・星空
       } else if (charaKey === 'wakaba') {
-        conditions.push(getSeasonKey());
-        conditions.push('自然');
+        conditions.push(getSeasonKey());     // 季節
+        conditions.push('自然');             // 自然トリビア
       }
 
       return conditions;
@@ -447,25 +438,15 @@
       }, 400);
     }
 
-    // === ③ 認識イベントの監視 ===
-    for (let i = 0; i < TOTAL_TARGETS; i++) {
+    // === ③ 認識イベントの監視（0〜8） ===
+    for (let i = 0; i < 9; i++) {
       const anchorEl = document.getElementById(`anchor-${i}`);
       if (!anchorEl) continue;
 
       anchorEl.addEventListener("targetFound", () => {
         checkAndTriggerSuperReach();
         visibleTargetIds.add(i);
-
-        // 認識された瞬間にデフォルト画像をセット
-        const charaKey = getCharaKey(i);
-        const plane = document.getElementById(`plane-${i}`);
-        if (plane && CHARA_MASTER[charaKey]) {
-          const img = CHARA_MASTER[charaKey].currentImg || CHARA_MASTER[charaKey].defaultImg;
-          plane.setAttribute('src', img);
-        }
-
         syncDisplayedCharacters();
-        triggerScenarioNow();
       });
 
       anchorEl.addEventListener("targetLost", () => {
@@ -494,14 +475,14 @@
       const activeCharas = getActiveCharacters();
       const activeTargetIds = new Set(activeCharas.map(a => a.targetId));
 
-      for (let i = 0; i < TOTAL_TARGETS; i++) {
+      for (let i = 0; i < 9; i++) {
         const plane = document.getElementById(`plane-${i}`);
         if (plane) {
           plane.setAttribute('visible', activeTargetIds.has(i));
         }
       }
 
-      statusDot.classList.remove('active');
+      statusDot.classList.remove('active', 'collabo');
 
       if (activeCharas.length > 0) {
         statusDot.classList.add('active');
@@ -513,58 +494,58 @@
       }
     }
 
-    function triggerScenarioNow() {
-      if (scenarioTimerId) clearTimeout(scenarioTimerId);
-      nextScenario();
-    }
-
     // === ④ シナリオ抽選 ===
     function nextScenario() {
       const activeCharas = getActiveCharacters();
 
       if (activeCharas.length === 0) {
-        scenarioTimerId = setTimeout(nextScenario, 1000);
+        setTimeout(nextScenario, 1000);
         return;
       }
 
-      const chosenActive = activeCharas[Math.floor(Math.random() * activeCharas.length)];
-      const chara = chosenActive.data;
-      const state = chara.state;
-      const plane = document.getElementById(`plane-${chosenActive.targetId}`);
-
-      const list = chara.scenarios;
-
-      if (list && list.length > 0) {
-        const activeConditions = getActiveConditions(chosenActive.charaKey);
-        const available = list.filter(item => activeConditions.includes(item.condition));
-        const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
-
-        state.action = chosen.action || 'talk';
-        chara.currentImg = chosen.image || chara.defaultImg;
-
-        if (plane && chara.currentImg) {
-          plane.setAttribute('src', chara.currentImg);
-        }
-
-        if (state.action === 'explore') {
-          state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-          state.targetY = 0.2 + Math.random() * 0.4;
-        } else if (state.action === 'walk') {
-          state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
-          state.targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
-        } else {
-          state.targetX = state.currentX;
-          state.targetY = state.currentY;
-        }
-
+      // 3人揃っている場合はコラボシナリオ
+      if (activeCharas.length === 3 && collaboScenarios.length > 0) {
+        const activeConditions = getActiveConditions();
+        const available = collaboScenarios.filter(item => activeConditions.includes(item.condition));
+        const chosen = (available.length > 0 ? available : collaboScenarios)[Math.floor(Math.random() * (available.length || collaboScenarios.length))];
         updatePanel(chosen.speech);
       } else {
-        if (plane && chara.defaultImg) plane.setAttribute('src', chara.defaultImg);
-        updatePanel(`こんにちは！${chara.name}だよ！🌱`);
+        // 通常の単体シナリオ抽選
+        const chosenActive = activeCharas[Math.floor(Math.random() * activeCharas.length)];
+        const chara = chosenActive.data;
+        const state = chara.state;
+        const plane = document.getElementById(`plane-${chosenActive.targetId}`);
+
+        const list = chara.scenarios.length > 0 ? chara.scenarios : CHARA_MASTER.kinoko.scenarios;
+
+        if (list.length > 0) {
+          // キャラクターに応じた条件を取得
+          const activeConditions = getActiveConditions(chosenActive.charaKey);
+          const available = list.filter(item => activeConditions.includes(item.condition));
+          const chosen = (available.length > 0 ? available : list)[Math.floor(Math.random() * (available.length || list.length))];
+
+          state.action = chosen.action;
+          chara.currentImg = chosen.image;
+
+          if (plane && chosen.image) plane.setAttribute('src', chosen.image);
+
+          if (state.action === 'explore') {
+            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+            state.targetY = 0.2 + Math.random() * 0.4;
+          } else if (state.action === 'walk') {
+            state.targetX = (Math.random() - 0.5) * CONFIG.areaRangeX;
+            state.targetY = (Math.random() - 0.5) * CONFIG.areaRangeY;
+          } else {
+            state.targetX = state.currentX;
+            state.targetY = state.currentY;
+          }
+
+          updatePanel(chosen.speech);
+        }
       }
 
       const delay = CONFIG.msgDurationMin + Math.random() * (CONFIG.msgDurationMax - CONFIG.msgDurationMin);
-      scenarioTimerId = setTimeout(nextScenario, delay);
+      setTimeout(nextScenario, delay);
     }
 
     // === ⑤ アニメーションループ ===
@@ -579,6 +560,10 @@
         const plane = document.getElementById(`plane-${targetId}`);
         const root = document.getElementById(`root-${targetId}`);
         if (!plane || !root) return;
+
+        if (data.currentImg && plane.getAttribute('src') !== data.currentImg) {
+          plane.setAttribute('src', data.currentImg);
+        }
 
         let speed = 0;
         if (state.action === 'walk') speed = 0.20;
@@ -688,7 +673,7 @@
       const ctx = outputCanvas.getContext('2d');
       ctx.scale(dpr, dpr);
 
-      // 1. カメラ背景
+      // 1. カメラ背景描画
       const vRect = video.getBoundingClientRect();
       if (vRect && vRect.width > 0 && vRect.height > 0) {
         ctx.drawImage(video, vRect.left, vRect.top, vRect.width, vRect.height);
@@ -708,14 +693,14 @@
         ctx.drawImage(video, sx, sy, sw, sh, 0, 0, screenW, screenH);
       }
 
-      // 2. ARキャラ
+      // 2. ARキャラ描画
       if (arCanvas) {
         ctx.drawImage(arCanvas, 0, 0, screenW, screenH);
       } else if (sceneEl.canvas) {
         ctx.drawImage(sceneEl.canvas, 0, 0, screenW, screenH);
       }
 
-      // 3. ロゴ
+      // 3. サイトロゴ（./site-logo.png）を合成
       if (headerLogoImg && headerLogoImg.naturalWidth > 0) {
         ctx.save();
         const logoTargetW = Math.min(screenW * 0.42, 150);
@@ -727,12 +712,14 @@
         ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
         ctx.shadowBlur = 8;
         ctx.shadowOffsetY = 2;
+
         ctx.drawImage(headerLogoImg, logoX, logoY, logoTargetW, logoTargetH);
         ctx.restore();
       }
 
-      // 4. セリフ枠の合成
+      // 4. セリフ枠の合成（生態ログなしのスッキリ表示）
       const speech = speechText ? speechText.innerText : '';
+
       if (speech) {
         ctx.save();
         const pWidth = Math.min(screenW * 0.90, 420);
@@ -774,37 +761,38 @@
 
         ctx.font = "bold 15px 'Hiragino Maru Gothic ProN', 'Rounded Mplus 1c', sans-serif";
         ctx.fillStyle = '#3e2714';
-        
-        // ★ スクリーンショット側も「左揃え」に変更
-        ctx.textAlign = 'left';
+        ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
 
         let textY = pY + 16;
-        const textStartX = pX + paddingX; // 内側の左端から開始
         speechLines.forEach(line => {
-          ctx.fillText(line, textStartX, textY);
+          ctx.fillText(line, pX + pWidth / 2, textY);
           textY += speechLineHeight;
         });
 
+        // コピーライト表示
         ctx.font = "bold 10px 'Hiragino Maru Gothic ProN', sans-serif";
         ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
         ctx.shadowColor = 'rgba(0, 0, 0, 0.7)';
         ctx.shadowBlur = 4;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
-        ctx.fillText('#小さな森の研究所   chii-mori.com', screenW / 2, pY + pHeight + 8);
+        ctx.fillText('#小さな森の研究所   chiisanamori.shop', screenW / 2, pY + pHeight + 8);
+
         ctx.restore();
       }
 
-      // 5. SNSテキスト
+      // 5. SNSテキスト生成
       const activeCharas = getActiveCharacters();
       let charaName = '小さな森のともだち';
-      if (activeCharas.length > 0) {
+      if (activeCharas.length === 3) {
+        charaName = '3人なかよしのみんな';
+      } else if (activeCharas.length > 0) {
         charaName = activeCharas.map(a => a.data.name).join('と');
       }
 
       const cleanSpeech = speech ? speech.replace(/\n+/g, ' ') : '';
-      currentSnsText = `小さな森の研究所で「${charaName}」に会ったよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chii-mori.com`;
+      currentSnsText = `小さな森の研究所で「${charaName}」に会ったよ！🌱\n「${cleanSpeech}」\n\n#小さな森の研究所 #生態観測レンズ #WebAR\nhttps://chiisanamori.shop`;
 
       try {
         capturedDataUrl = outputCanvas.toDataURL('image/png');
